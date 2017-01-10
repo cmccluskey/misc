@@ -12,6 +12,10 @@ if [ -e  /etc/network/interfaces ]; then
   sudo apt-get install -y vlc
   sudo apt-get install -y git
   sudo apt-get install -y ruby 
+  sudo apt-get install -y python-pip
+  git config --global user.email "mcclusk@gmail.com"
+  git config --global user.name "Chris McCluskey"
+  sudo pip install python-magic
 
 ###################
 # Redhat/Centos
