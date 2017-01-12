@@ -7,6 +7,7 @@ import magic
 # export PYTHONPATH=/usr/local/lib/python2.7/site-packages
 import re
 import stat
+from magicfixup import magicfixup
 
 # Don't navigate these root paths
 exclude_paths = ['/dev','/tmp','/Volumes']
@@ -61,10 +62,12 @@ for root, dirs, files in os.walk(args.path):
 						extension = os.path.splitext(testfile)[1]
 						# Confirm there is an extension on the file
 						if extension:
+							# Cleanup description to strip out per-file data
+							description = magicfixup(magic.from_file(testfile,arg.debug).split(',')[0])
 							# Write out data: Extension <tab> Mime Type <tab> Magic Description <tab> Full filename
 							outf.write(extension.strip('.').lower())
 							outf.write('\t')
-							outf.write(magic.from_file(testfile).split(',')[0])
+							outf.write(description)
 							outf.write('\t')
 							outf.write(magic.from_file(testfile, mime=True))
 							outf.write('\t')

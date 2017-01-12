@@ -2,6 +2,7 @@
 import argparse
 import sys
 import pprint
+from magicfixup import magicfixup
 
 # Note: The Main Dictionary is "extensions" -> Sub Dictionary is the externsion of the file in the list -> Key is the shortened Magic Description in the data file -> Value is a Reference Counter
 
@@ -26,6 +27,8 @@ except IOError:
 else:
 	for line in inf:
 		(extension, description, mimetype, filename) = line.split('\t')
+		# Cleanup description to strip out per-file data
+		description = magicfixup(description,args.debug)
 		if args.debug: print "Debug: extension:%s, description:%s" % (extension,description)
 
 		if extension not in extensions:
