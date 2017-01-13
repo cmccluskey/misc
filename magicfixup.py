@@ -11,7 +11,7 @@ def magicfixup(olddesc,debug):
 	fixedup = fixedup.split('  - ')[0]
 
 #Split on ‘ - ‘
-	fixedup = fixedup.split('  - ')[0]
+	fixedup = fixedup.split(' - ')[0]
 
 #'SysEx File -': 5
 	regex = r'(.*)%s$' % re.escape(' -')
