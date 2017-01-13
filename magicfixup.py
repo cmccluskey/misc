@@ -11,7 +11,7 @@ def magicfixup(olddesc,debug):
 	fixedup = fixedup.split('  - ')[0]
 
 #Split on ‘ - ‘
-	fixedup = fixedup.split('  - ')[0]
+	fixedup = fixedup.split(' - ')[0]
 
 #'SysEx File -': 5
 	regex = r'(.*)%s$' % re.escape(' -')
@@ -34,7 +34,7 @@ def magicfixup(olddesc,debug):
 #"# UDF filesystem data (version 1.5) 'JESSIE_R__PEREA'": 1,
 #"# UDF filesystem data (version 1.5) 'UNTITLED_PROJECT'": 1},
 	regex = r'^%s(.*)' % re.escape('# ') 
-	fixedup = re.sub(regex, '', fixedup)
+	fixedup = re.sub(regex, r'\1', fixedup)
 
 #'mp3': {   'Audio file with ID3 version 2.2.0': 139,
 #‘Audio file with ID3 version 2.2.0': 3195,
