@@ -42,7 +42,7 @@ else:
 		else:
 			extensions[extension][description] += 1
 
-
+print "extdict = "
 pp = pprint.PrettyPrinter(indent=4)
 pp.pprint(extensions)
 
