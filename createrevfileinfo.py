@@ -31,11 +31,11 @@ except IOError:
 	defaultloaded=False
 else:
 	exec(defaultf)
-	if (len(defaultdict.keys()) < 2):
-		print "Error: Cannot load dict %s. Not enough records loaded (%s)." % (defaultdictf,len(defaultdict.keys()))
+	if (len(defaultext.keys()) < 2):
+		print "Error: Cannot load dict %s. Not enough records loaded (%s)." % (defaultdictf,len(defaultext.keys()))
 		defaultloaded=False
 	else:
-		if args.debug: print "Info: %s keys loaded into defaultdict." % (len(defaultdict.keys()))
+		if args.debug: print "Info: %s keys loaded into defaultdict." % (len(defaultext.keys()))
 		defaultloaded=True
 	defaultf.close
 
@@ -80,6 +80,10 @@ if not defaultloaded:
 else: None
 
 # Merge the defaultext to revextension
+for description in revextension:
+	if description in defaultext.keys():
+		revextension[description].update(defaultext[description])
+	else: None
 
 # Write out revextension
 try:
