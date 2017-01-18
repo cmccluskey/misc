@@ -792,6 +792,12 @@ extdict = {
 	'linux-dvem': {
 		'makefile script': 3
 	},
+	'lib': {
+		'current ar archive': 5.
+	},
+	'lic': {
+		'ASCII text': 3
+	},
 	'linux-i386': {
 		'makefile script': 3
 	},
@@ -807,6 +813,9 @@ extdict = {
 	},
 	'lo': {
 		'libtool object file': 21
+	},
+	'log': {
+		'ASCII text': 23,
 	},
 	'lsp': {
 		'ASCII text': 2,
@@ -875,6 +884,9 @@ extdict = {
 		'Hierarchical Data Format (version 5) with 512 bytes user block': 2,
 		'Matlab v5 mat-file (big endian) version 0x0100': 35,
 		'Matlab v5 mat-file (little endian) version 0x0100': 134
+	},
+	'md': {
+		'ASCII text': 23
 	},
 	'md5': {
 		'ASCII text': 11
@@ -967,6 +979,9 @@ extdict = {
 	'ost': {
 		'Microsoft Outlook email folder (>=2003)': 2
 	},
+	'ova': {
+		'POSIX tar archive': 1
+	},
 	'patch': {
 		'unified diff output': 25
 	},
@@ -1030,7 +1045,9 @@ extdict = {
 	},
 	'pm': {
 		'ASCII text': 145,
+		'C++ source': 1,
 		'ISO-8859 text': 2,
+		'Objective-C source': 1,
 		'Perl POD document': 65,
 		'Perl script text executable': 115,
 		'Perl5 module source': 6572,
@@ -1043,8 +1060,11 @@ extdict = {
 		'PNG image data': 56
 	},
 	'pod': {
+		'BSD makefile script': 1,
 		'Perl POD document': 4386,
-		'Perl5 module source': 91
+		'Perl5 module source': 91,
+		'C++ source':1,
+		'C source':1
 	},
 	'ppd': {
 		'PPD file': 33
@@ -1240,6 +1260,7 @@ extdict = {
 	},
 	'strings': {
 		'ASCII text': 100,
+		'Apple binary property list': 10,
 		'Big-endian UTF-16 Unicode text': 1563,
 		'Little-endian UTF-16 Unicode text': 8508,
 		'UTF-8 Unicode (with BOM) text': 50,
@@ -1312,7 +1333,8 @@ extdict = {
 		'multipart/mixed': 9,
 		'news or mail': 36,
 		'saved news': 1,
-		'text/plain; charset="us-ascii"': 3
+		'text/plain; charset="us-ascii"': 3,
+		'PEM RSA private key': 1
 	},
 	'url': {
 		'ASCII text': 2519,

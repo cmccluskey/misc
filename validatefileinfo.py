@@ -1,18 +1,17 @@
 #!/usr/bin/python
+import sys
+sys.path.append("/usr/local/lib/python2.7/site-packages")
 import argparse
 import os
+import re
+import stat
 import magic
 # brew install libmagic
 # via pip install python-magic
 # export PYTHONPATH=/usr/local/lib/python2.7/site-packages
-import sys
-import re
-#import stat
 from magicfixup import magicfixup
 from datetime import datetime
 
-# Variables
-reportfile_ext  = '.tmp'
 
 # Counters
 countTotal      = 0 # Scanned plus all no-scan cases
@@ -28,30 +27,36 @@ countVariant    = 0
 countIncorrect  = 0
 countMissingExt = 0
 countSymLink    = 0
+countMissingDesc= 0
 
 # Timers
 startTime       = datetime.now()
 endTime         = 0
 
+# Temporary file extension
+temp_ext        = ".tmp"
+
 # Ok to process based on exlude list
 def excludeRootCheckPassed(checkfile, myList):
 	checkfile = os.path.dirname(checkfile)
-        for x in myList:
-                regex = '^' + re.escape(x)
-                if re.search(regex,checkfile):
-                        return False
-                else:
-                        None
-        return True
-
-def excludeDirCheckPassed(checkfile, myList):
-	checkfile = os.path.dirname(checkfile)
 	for x in myList:
-        	regex = '^' + re.escape(x)
+		regex = '^' + re.escape(x)
 		if re.search(regex,checkfile):
 			return False
 		else: None
 	return True
+
+def excludeDirCheckPassed(checkfile, myList):
+	checkfile = os.path.dirname(checkfile)
+	for x in myList:
+        	regex = re.escape(x)
+		if re.search(regex,checkfile):
+			return False
+		else: None
+	return True
+
+def changeCase(inputfile, case):
+	return inputfile
 
 def writeLog(handles, line):
 	for handle in handles:
@@ -71,6 +76,7 @@ parser.add_argument('-v', dest='verbose', action='store_true', default=False, he
 parser.add_argument('-c', dest='caserun', action='store_true', default=False, help='Perform a modify case run.')
 parser.add_argument('-m', dest='movedir', default=False, help='Perform a moving run by specififying a destination subdirectory relative to the current filename. You can provide a full path to move to a set location.')
 parser.add_argument('-n', dest='namerun', action='store_true', default=False, help='Perform a rename-in-place run, modifying the suffix and case in place.')
+parser.add_argument('-0', dest='addextension', action='store_true', default=False, help='Add an extension, if DEFAULT is found, for files that don\'t have one. Log entries in report if DEFAULT is not found.')
 
 # True out arg parser
 args = parser.parse_args()
@@ -111,12 +117,12 @@ if args.movedir:
 		exclude_directories.append(movedir_clean)
 else: None
 
-# Open temporary report file
+# Open report file
 if args.reportfile:
 	try:
-		outf = open(os.path.abspath(args.reportfile + reportfile_ext), 'w')
+		outf = open(os.path.abspath(args.reportfile + temp_ext), 'w')
 	except IOError:
-		print "Error: Cannot open temp reportfile %s." % ((args.reportfile + reportfile_ext))
+		print "Error: Cannot open reportfile %s for writing." % ((args.reportfile + temp_ext))
 		sys.exit(1)
 else: None
 
@@ -137,139 +143,209 @@ writeLog(active_log_handles, "Debug: %s" % exclude_directories)
 
 # Attempt to load the revextension dict
 try:
-       inf = open(os.path.abspath(args.revextdict), 'r')
+	inf = open(os.path.abspath(args.revextdict), 'r')
 except IOError:
-       writeLog(active_log_handles, "Error: Cannot load revextension dict from %s." % (os.path.abspath(args.revextdict)))
-       sys.exit(1)
+	writeLog(active_log_handles, "Error: Cannot load revextension dict from %s." % (os.path.abspath(args.revextdict)))
+	sys.exit(1)
 else:
-       exec(inf)
-       if (len(revextension.keys()) < 2):
-               writeLog(active_log_handles, "Error: Cannot load dict %s. Not enough records loaded (%s)." % (revextdict,len(revextension.keys())))
-               sys.exit(1)
-       else:
-               writeLog(active_log_handles, "Info: %s keys loaded into revextension dict." % (len(revextension.keys())))
-       inf.close
+	exec(inf)
+	if (len(revextension.keys()) < 2):
+		writeLog(active_log_handles, "Error: Cannot load dict %s. Not enough records loaded (%s)." % (revextdict,len(revextension.keys())))
+		sys.exit(1)
+	else:
+		writeLog(active_log_handles, "Info: %s keys loaded into revextension dict." % (len(revextension.keys())))
+	inf.close()
 
 # Walk the tree and write out line
 for root, dirs, files in os.walk(args.path):
 	for file in files:
-	countTotal += 1
+		countTotal += 1
 		testfile =  os.path.join(root, file)
 		# Check for excluded paths from root
 		if excludeRootCheckPassed(testfile,exclude_paths):
 			# Check excluded directories
-			if excludeCheckPassed(testfile,exclude_directories) 
+			if excludeDirCheckPassed(testfile,exclude_directories): 
 			# Check for a symlink which messes with the socket check
-			if os.path.islink(testfile):
-				countSkipped +=1
-				if (args.verbose): writeLog(active_log_handles, "%s skipped as a symlink." % (testfile))
-                                elif (args.debug): print "%s skipped as a symlink." % (testfile))
-                                else: None
-			else:
-				# Readable as the current user
-				try:
-					fp = open(testfile,'r')
-				except IOError:
-					countNoAccess +=1
-					if (args.verbose): writeLog(active_log_handles, "%s skipped due to access permissions." % (testfile))
-					elif (args.debug): print "%s skipped due to access permissions." % (testfile))
+				if os.path.islink(testfile):
+					countSkipped +=1
+					if (args.verbose): writeLog(active_log_handles, "%s skipped as a symlink." % (testfile))
+					elif (args.debug): print "%s skipped as a symlink." % (testfile)
 					else: None
 				else:
-					fp.close
-				        # Checking to see if file is a socket
-        				mode = os.stat(testfile).st_mode
-        				if stat.S_ISSOCK(mode):
-						countSkipped += 1
-						if (args.verbose): writeLog(active_log_handles, "%s skipped as a named socket/pipe." % (testfile))
-						elif (args.debug): print "%s skipped as a named socket/pipe." % (testfile))
+					# Readable as the current user
+					try:
+						fp = open(testfile,'r')
+					except IOError:
+						countNoAccess +=1
+						if (args.verbose): writeLog(active_log_handles, "%s skipped due to access permissions." % (testfile))
+						elif (args.debug): print "%s skipped due to access permissions." % (testfile)
 						else: None
-        				else:   
-#countTotal      = 0 # Scanned plus all no-scan cases
-#countScanned    = 0 # Scanned cases total (see below)
-#countNoAccess   = 0 # Unscanned
-#countSkipped    = 0 # Unscanned
-#countExcluded   = 0 # Unscanned
-
-# Counters of scanned items
-#countCorrect    = 0
-#countCase       = 0
-#countVariant    = 0
-#countIncorrect  = 0
-#countMissingExt = 0
-						extension = os.path.splitext(testfile)[1]
-						description = magicfixup(magic.from_file(testfile,arg.debug)[0])
-#						# Confirm there is an extension on the file
-#						if extension:
-							# Check extension mapping with type
-								# Is Variant
-								# Is Incorrect
-							# Check extension case
-#						else:
-							# Is there a DEFAULT case for this description
-#							if args.debug: print "Warning: No extension detected for %s" % testfile
+					else:
+						fp.close()
+						# Checking to see if file is a socket
+						mode = os.stat(testfile).st_mode
+						if stat.S_ISSOCK(mode):
+							countSkipped += 1
+							if (args.verbose): writeLog(active_log_handles, "%s skipped as a named socket/pipe." % (testfile))
+							elif (args.debug): print "%s skipped as a named socket/pipe." % (testfile)
+						else:
+							# We are going to Scan this file now
+							countScanned += 1
+							extension = os.path.splitext(testfile)[1].lstrip('.')
+#							print "%s, %s" % (testfile,args.debug)
+							description = magicfixup(magic.from_file(testfile), False)
+							if (description in revextension):
+								# Confirm there is an extension on the file
+								if extension:
+									# Check extension mapping via description
+#									print "Extension:'%s', Keys:%s" % (extension, revextension[description].keys())	
+									if ('DEFAULT' in revextension[description].keys()):
+										if (extension.lower() == revextension[description]['DEFAULT'][0].lower()):
+											# Yes, the extension is correct for the description 
+											if (args.verbose): writeLog(active_log_handles, "%s has the correct extension '%s' for '%s'." % (testfile,extension,description))
+											elif (args.debug): print "%s has the correct extension '%s' for '%s'." % (testfile,extension,description)
+										else:
+											countIncorrect += 1
+											writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))	 
+									# Is a variant
+									elif (extension.lower() in revextension[description].keys()):
+										# Yes, the extension is a known variant for the description
+										countVariant += 1
+										# Is this extension EXCLUDED from being rewritten
+										if ('EXCLUDE' in revextension[description].keys()):
+											if extension.lower() in revextension[description]['EXCLUDE'].lower():
+												# In the exclude list, so don't change the file
+												if (args.verbose): writeLog(active_log_handles, "%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description))
+												elif (args.debug): print "%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description)
+											else: None
+ 										else:
+											# Is there a DEFAULT?
+											if ('DEFAULT' in revextension[description].keys()):
+												# Then move
+												writeLog(active_log_handles, "%s has a known extension '%s' for '%s' but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
+											else:
+											# There isn't a default, so do nothing and move onto case operations (if included)
+												if (args.verbose): writeLog(active_log_handles, "%s has a known extension '%s' for '%s' and the extension won't be changed." % (testfile,extension,description))
+												elif (args.debug): print "%s has a known extension '%s' for '%s' and the extension won't be changed." % (testfile,extension,description)
+												else: None
+									else:
+										# Assuming incorrect extension for description
+										countIncorrect += 1
+										# Is there an alternate extenstion available?
+										if ('DEFAULT' in revextension[description].keys()):
+											writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
+										else:	
+											writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but it's unclear what possible extension to use '%s'." % (testfile,extension,description,revextension[description].keys()))
+									# Store intended destination name (from potential changes above)
+									destination_file = testfile
+									# Does destination name == source name
+									if args.caserun:
+										# Check extension case
+ 										destination_file = changeCase(destination_file, args.case)
+										# Case is still the same then do some final accounting 
+										if testfile == destination_file:
+											countCorrect += 1
+										else:
+											countCase += 1
+									else:
+										if testfile == destination_file:
+											countCorrect += 1
+										else:
+											countCase += 1
+								else:
+									countMissingExt += 1
+									if args.addextension:
+										if ('DEFAULT' in revextension[description].keys()):
+											writeLog(active_log_handles, "%s has no extension, but has a potential default of '%s' for '%s'." % (testfile,revextension[description]['DEFAULT'][0],description))
+										else:
+											writeLog(active_log_handles, "%s has no extension, and there is no default extension set for '%s'." % (testfile, description))
+									else: None		
+								# Perform actual rewrite to destination
+								# Check to see if destination path exists
+									# If no, create
+								# Move file
+							else:
+								# There is no description found in revextensions
+								countMissingDesc += 1
+								if (args.verbose): writeLog(active_log_handles, "%s doesn't have a valid description '%s' in the revextension dict." % (testfile,description))
+								elif (args.debug): print "%s doesn't have a valid description '%s' in the revextension dict." % (testfile,description)
 			else: 
 				countExcluded +=1
 				if (args.verbose):
 					writeLog(active_log_handles, "%s excluded by subdirectory filter." % (testfile))
-				elif (args.debug): print "%s excluded by subdirectory filter." % (testfile))
+				elif (args.debug): print "%s excluded by subdirectory filter." % (testfile)
 				else: None
 		else: 
 			countExcluded +=1
 			if (args.verbose):
 				writeLog(active_log_handles, "%s excluded by path filter." % (testfile))
-			elif (args.debug): print "%s excluded by path filter." % (testfile))
+			elif (args.debug): print "%s excluded by path filter." % (testfile)
 			else: None
 
 # Close temporary report file
 if args.reportfile:
-	outf.close
+	outf.flush()
+	outf.close()
 else: None
 
-# Do stats calculation
-# Create header
-# Flush header to report file
-# Add rest of report data
+#print os.stat(os.path.abspath(args.reportfile + temp_ext)).st_size 
 
-#		largest = None
-#		count = 0
-#		if (len(revextension[description]) > 0):
-#			for key in revextension[description]:
-#				if revextension[description][key] > count:
-#					largest = key 
-#					count = revextension[description][key]
-#					if args.debug: print "Debug: Marking key %s as the largest (%s) in %s." % (key, count, description)
-#				else: None
-#			defaultext[description] = {}
-#			defaultext[description]['DEFAULT'] = []
-#			defaultext[description]['DEFAULT'].append(largest)
-#		else:
-#			if args.debug: print "Info: There is only one extension, %s, for description, %s." % (key, description)
-#	# Write out defaultext
-#	try:
-#		outf = open(os.path.abspath(args.defaultdictf), 'w')
-#	except IOError:
-#		if args.debug: print "Error: Cannot write defaultext dict to %." % (os.path.abspath(args.defaultdictf))
-#	else:
-#		outf.write("defaultext = ")
-#        	pp = pprint.PrettyPrinter(indent=1,stream=outf)
-#        	pp.pprint(defaultext)
-#        	outf.close
-#else: None
-#
-## Merge the defaultext to revextension
-#for description in revextension:
-#	if description in defaultext.keys():
-#		revextension[description].update(defaultext[description])
-#	else: None
-#
-## Write out revextension
-#try:
-#	outf = open(os.path.abspath(args.revdictf), 'w')
-#except IOError:
-#	if args.debug: print "Error:  Cannot write revextension dict to %." % (os.path.abspath(args.revdictf))
-#else:
-#	outf.write("revextension = ")
-#	pp = pprint.PrettyPrinter(indent=1,stream=outf)
-#	pp.pprint(revextension)
-#	outf.close
-#
+# Do stats calculation
+endTime         = datetime.now()
+elapsed			= (endTime - startTime).total_seconds()
+#print elapsed
+filePerSec		= 0.0
+filesPerSec    = countTotal / elapsed
+
+# Open temp file
+if args.reportfile:
+	try:
+		tempf = open(os.path.abspath(args.reportfile + temp_ext), 'r')
+	except IOError:
+		print "Error: Cannot open temp reportfile %s for reading." % (args.reportfile + temp_ext)
+		sys.exit(1)
+	else: None
+else: None
+
+# Open report file for header placement
+if args.reportfile:
+	try:
+		reportf = open(os.path.abspath(args.reportfile), 'w')
+	except IOError:
+		print "Error: Cannot open reportfile %s for writing." % (args.reportfile)
+		sys.exit(1)
+	else: None
+else: None
+
+if args.reportfile:
+	reportf.write("Report for files in path: %s\n" % (args.path) )
+	reportf.write("\n")
+	reportf.write("Report start time: %s\n" % (startTime) )
+	reportf.write("Report end time:   %s\n" % (endTime) )
+	reportf.write("%s files were processed in total, at a rate of %.2f files per second.\n" % (countTotal, filesPerSec))
+	reportf.write("\n")
+	reportf.write("%s%s%s Total Count\n" % (str(countTotal).ljust(10), ''.ljust(10), ''.ljust(10)))
+	reportf.write("%s%s%s No Access\n" % (''.ljust(10), str(countNoAccess).ljust(10), ''.ljust(10)))
+	reportf.write("%s%s%s Skipped\n" % (''.ljust(10), str(countSkipped).ljust(10), ''.ljust(10)))
+	reportf.write("%s%s%s Excluded\n" % (''.ljust(10), str(countExcluded).ljust(10), ''.ljust(10)))
+	reportf.write("%s%s%s Scanned\n" % (''.ljust(10), str(countScanned).ljust(10), ''.ljust(10)))
+	reportf.write("%s%s%s Correct\n" % (''.ljust(10), ''.ljust(10), str(countCorrect).ljust(10)))
+	reportf.write("%s%s%s Acceptable Variant in Extension\n" % (''.ljust(10), ''.ljust(10), str(countVariant).ljust(10)))
+	reportf.write("%s%s%s Incorrect Extension\n" % (''.ljust(10), ''.ljust(10), str(countIncorrect).ljust(10)))
+	reportf.write("%s%s%s Missing Extension\n" % (''.ljust(10), ''.ljust(10), str(countMissingExt).ljust(10)))
+	reportf.write("%s%s%s Symlink\n" % (''.ljust(10), ''.ljust(10), str(countSymLink).ljust(10)))
+	reportf.write("%s%s%s Incorrect Case\n" % (''.ljust(10), ''.ljust(10), str(countCase).ljust(10)))
+	reportf.write("%s%s%s Missing Description\n" % (''.ljust(10), ''.ljust(10), str(countMissingDesc).ljust(10)))
+	reportf.write("\n")
+	reportf.write("Data\n")
+	reportf.write("__________________________________________\n")
+	while True:
+		line = tempf.readline()
+		if line == '':
+			break
+		else:
+			reportf.write(line)
+	reportf.close()
+	tempf.close()
+else: None
+
