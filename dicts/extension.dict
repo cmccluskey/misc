@@ -297,7 +297,8 @@ extdict = {
 		'Little-endian UTF-16 Unicode text': 64,
 		'Non-ISO extended-ASCII text': 8,
 		'UTF-8 Unicode (with BOM) text': 410,
-		'UTF-8 Unicode text': 29
+		'UTF-8 Unicode text': 29,
+		'HTML document': 1
 	},
 	'csv': {
 		'ASCII text': 403
@@ -732,6 +733,9 @@ extdict = {
 		'ISO 9660 CD-ROM filesystem data': 18,
 		'UDF filesystem data': 3
 	},
+	'ix': {
+		'Perl5 module source': 1
+	},
 	'jar': {
 		'Java archive data': 243,
 		'Zip archive data': 853
@@ -759,6 +763,7 @@ extdict = {
 	'js': {
 		'ASCII text': 3441,
 		'Big-endian UTF-16 Unicode text': 14,
+		'HTML document': 1,
 		'Java source': 3,
 		'LaTeX document': 8,
 		'Little-endian UTF-16 Unicode text': 325,
@@ -788,6 +793,9 @@ extdict = {
 	'latex': {
 		'LaTeX 2e document': 2,
 		'LaTeX document': 4
+	},
+	'ld': {
+		'ASCII text': 1
 	},
 	'linux-dvem': {
 		'makefile script': 3
@@ -870,6 +878,9 @@ extdict = {
 		'ASCII text': 3,
 		'BSD makefile script': 3
 	},
+	'manifest': {
+		'ASCII text': 1,
+	},
 	'map': {
 		'ASCII text': 164,
 		'ISO-8859 text': 7,
@@ -893,6 +904,9 @@ extdict = {
 	},
 	'mht': {
 		'news or mail': 15
+	},
+	'mib': {
+		'ASCII text': 1
 	},
 	'miff': {
 		'MIFF image data': 5
@@ -952,11 +966,18 @@ extdict = {
 	'msm': {
 		'Composite Document File V2 Document': 26
 	},
+	'msu': {
+		'Microsoft Cabinet archive data': 1
+	},
 	'myi': {
 		'MySQL MyISAM index file Version 1': 34
 	},
 	'news': {
 		'exported SGML document': 2
+	},
+	'nib': {
+		'Apple binary property list': 1,
+		'XML 1.0 document': 1
 	},
 	'nrg': {
 		'UDF filesystem data': 3,
@@ -978,6 +999,9 @@ extdict = {
 	},
 	'ost': {
 		'Microsoft Outlook email folder (>=2003)': 2
+	},
+	'out': {
+		'ASCII text': 1
 	},
 	'ova': {
 		'POSIX tar archive': 1
@@ -1031,6 +1055,7 @@ extdict = {
 	'pl': {
 		'ASCII text': 2039,
 		'Algol 68 source': 1,
+		'Perl5 module source': 1,
 		'Perl POD document': 2,
 		'Perl script': 157,
 		'Perl script text executable': 1854,
@@ -1046,6 +1071,7 @@ extdict = {
 	'pm': {
 		'ASCII text': 145,
 		'C++ source': 1,
+		'C source': 1,
 		'ISO-8859 text': 2,
 		'Objective-C source': 1,
 		'Perl POD document': 65,
@@ -1106,7 +1132,8 @@ extdict = {
 		'a /bin/env python script': 22,
 		'a /usr/bin/env python script': 165,
 		'a /usr/bin/python script': 17,
-		'a /usr/local/bin/python script': 2
+		'a /usr/local/bin/python script': 2,
+		'Objective-C source': 1
 	},
 	'pyc': {
 		'python 2.3 byte-compiled': 3,
@@ -1147,6 +1174,7 @@ extdict = {
 	},
 	'rb': {
 		'ASCII text': 813,
+		'C++ source': 1,
 		'Ruby module source': 2494,
 		'Ruby script': 518,
 		'UTF-8 Unicode text': 1,
@@ -1187,8 +1215,14 @@ extdict = {
 	'rv': {
 		'RealMedia file': 1
 	},
+	'scss': {
+		'ASCII text': 1
+	},
 	'searchterms': {
 		'XML 1.0 document': 1025
+	},
+	'session': {
+		'ASCII text': 1
 	},
 	'settings': {
 		'XML document': 3,
@@ -1279,10 +1313,15 @@ extdict = {
 	'sys': {
 		'PE32 executable (native) Intel 80386': 2
 	},
+	't': {
+		'Perl script text executable': 1,
+		'ASCII text': 1
+	},
 	'tar': {
 		'POSIX tar archive': 5,
 		'POSIX tar archive (GNU)': 46,
-		'tar archive': 1
+		'tar archive': 1,
+		'XZ compressed data': 1
 	},
 	'tbl': {
 		'TrueType font data': 4
@@ -1372,6 +1411,9 @@ extdict = {
 	'vdi': {
 		'VirtualBox Disk Image': 3
 	},
+	'vib': {
+		'current ar archive': 1
+	},
 	'vjsproj': {
 		'UTF-8 Unicode (with BOM) text': 3
 	},
@@ -1412,6 +1454,9 @@ extdict = {
 	'wrd': {
 		'Microsoft Word Document': 3
 	},
+	'wsf': {
+		'HTML document': 1
+	},
 	'xar': {
 		'xar archive version 1': 2
 	},
@@ -1438,7 +1483,8 @@ extdict = {
 	'xml': {
 		'XML 1.0 document': 7346,
 		'XML 1.0 document text': 559,
-		'XML document': 19
+		'XML document': 19,
+		'ASCII text': 1
 	},
 	'xpm': {
 		'X pixmap image': 257
@@ -1450,6 +1496,9 @@ extdict = {
 	'xsl': {
 		'SVG Scalable Vector Graphics image': 3,
 		'exported SGML document': 7
+	},
+	'xslt': {
+		'XML 1.0 document text': 1
 	},
 	'xz': {
 		'XZ compressed data': 1
