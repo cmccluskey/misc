@@ -56,8 +56,7 @@ def excludeDirCheckPassed(checkfile, myList):
 	return True
 
 def changeCase(filename, extension, case, extdict):
-	strippedfile = os.path.splitext(testfile)[0].rstrip('.')
-	strippedext = os.path.splitext(testfile)[1].lstrip('.')
+	(path, strippedfile, strippedext) = fileParts(filename)
 	if ( case == 'lower'):
 		strippedext = strippedext.lower()
 	elif (case == 'upper'):
@@ -68,13 +67,13 @@ def changeCase(filename, extension, case, extdict):
 		else:
 			strippedext = extension
 	else: None
-	returnfile = strippedfile + '.' + strippedext
+	returnfile = path + '/' + strippedfile + '.' + strippedext
 	if (args.debug): print "changeCase: returnfile: %s" % returnfile
 	return (returnfile)
 
 def changeExt(filename, extension, case, extdict = {}):
-	strippedfile = os.path.splitext(testfile)[0].rstrip('.')
-	filename = strippedfile + '.' + extension
+	(path, strippedfile, strippedext) = fileParts(filename)
+	filename = path + '/' + strippedfile + '.' + extension
 	filename = changeCase(filename, extension, case, extdict)
 	if (args.debug): print "changeExt: filename: %s" % filename
 	return filename
@@ -84,6 +83,16 @@ def writeLog(handles, line):
 		handle.write(line)
 		handle.write('\n')
 	return True
+
+def fileParts(filename):
+	(path, fileproper) = os.path.split(filename)
+	if '.' in fileproper:
+		(base, extension) = fileproper.rsplit('.',1)
+	else:
+		base = fileproper
+		extension = ''
+	if (args.debug): print "fileParts: %s %s %s" % (path, base, extension)
+	return [path, base, extension]
 
 # Parser setup
 parser = argparse.ArgumentParser(description='Validate files and thier extensions based on Magic description. Either report, rewrite, or move files that don\'t conform to the dictionary.')
@@ -190,7 +199,7 @@ for root, dirs, files in os.walk(args.path):
 		# Flag to fix the file (used for safety checks)
 		needsfixing=False
 		# Flag to move the file without fixing name (safety check)
-		nomodfiedfile=False
+		nomodifiedfile=False
 		# Check for excluded paths from root
 		if excludeRootCheckPassed(testfile,exclude_paths):
 			# Check excluded directories
@@ -221,13 +230,13 @@ for root, dirs, files in os.walk(args.path):
 						else:
 							# We are going to Scan this file now
 							countScanned += 1
-							extension = os.path.splitext(testfile)[1].lstrip('.')
-#							print "%s, %s" % (testfile,args.debug)
+							if (args.debug): print "Testfile: %s" % testfile
+							extension = fileParts(testfile)[2]
+							if (args.debug): print "Extension: %s" % extension
 							description = magicfixup(magic.from_file(testfile), False)
 							if (description in revextension):
 								# Confirm there is an extension on the file
 								if extension:
-
 									# Note a case fault. If we aren't rewriting case, revert the "destination" file back to the original.
 									# Future case changes will be done on extension rewrites.			
 									casefile = changeCase(testfile, extension, args.case, revextension[description])
@@ -240,7 +249,9 @@ for root, dirs, files in os.walk(args.path):
 											# Reverse the change
 											casefile = testfile
 									else: None
-
+									# Initalize modifiedfile to the output of the casefile
+									modifiedfile = casefile
+#									print "Casefile: %s" % (casefile)
 									# Check extension mapping via description
 #									print "Extension:'%s', Keys:%s" % (extension, revextension[description].keys())	
 									if ('DEFAULT' in revextension[description].keys()):
@@ -249,12 +260,14 @@ for root, dirs, files in os.walk(args.path):
 											if (args.verbose): writeLog(active_log_handles, "%s has the correct extension '%s' for '%s'." % (testfile,extension,description))
 											elif (args.debug): print "%s has the correct extension '%s' for '%s'." % (testfile,extension,description)
 											countCorrect += 1
+											nomodifiedfile=True
 										else:
 											if ('EXCLUDE' in revextension[description].keys()):
 												if extension.lower() in revextension[description]['EXCLUDE']:
 													if (args.verbose): writeLog(active_log_handles, "%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description))
 													elif (args.debug): print "%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description)
 													countVariant += 1	
+													nomodifiedfile=True
 												else:
 													writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
 													modifiedfile = changeExt(casefile, revextension[description]['DEFAULT'][0], args.case, revextension[description])
@@ -276,6 +289,7 @@ for root, dirs, files in os.walk(args.path):
 												elif (args.debug): print "%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description)
 											else: None
 											countVariant += 1
+											nomodifiedfile=True
  										else:
 											# Is there a DEFAULT?
 											if ('DEFAULT' in revextension[description].keys()):
@@ -291,6 +305,7 @@ for root, dirs, files in os.walk(args.path):
 												elif (args.debug): print "%s has a known extension '%s' for '%s' and the extension won't be changed." % (testfile,extension,description)
 												else: None
 												countVariant += 1
+												nomodifiedfile=True
 									else:
 										# Assuming incorrect extension for description
 										countIncorrect += 1
@@ -306,6 +321,8 @@ for root, dirs, files in os.walk(args.path):
 											nomodifiedfile=True
 								else:
 									countMissingExt += 1
+									modifiedfile=testfile
+									casefile=testfile
 									if args.addextension:
 										if ('DEFAULT' in revextension[description].keys()):
 											writeLog(active_log_handles, "%s has no extension, but has a potential default of '%s' for '%s'." % (testfile,revextension[description]['DEFAULT'][0],description))
@@ -316,7 +333,7 @@ for root, dirs, files in os.walk(args.path):
 											else: None
 										else:
 											writeLog(active_log_handles, "%s has no extension, and there is no default extension set for '%s'." % (testfile, description))
-									else: None		
+									else: None
 								# Begin actual fixes here
 								# Interlock checks before mucking around with files
 								if (modifiedfile == ''):
@@ -343,18 +360,20 @@ for root, dirs, files in os.walk(args.path):
 									if (args.caserun):
 										# Make sure the destination file doesn't exit, else throw error and bail for now
 										# Move/rename the file to a new case
-									
+										None	
 									# Move/rename the file to modfied file name in the same location (in-place)
 									elif (args.namerun):
 										# Make sure the destination doesn't exit, else throw error and bail for now
 										# Move/rename the file to a new name
+										None
 									# Do not modify the file any further, just move the errored file to a global path OR to local (to file) subdirectory
 									elif (args.moverun):
 										# Global path or local subdirectory move
 										# Alter destination file path to compensate
 										# Make sure the directory exists, if not create it
 										# Make sure the destination doesn't exit, else throw error and bail for now
-										# Move/rename the file to a new location without renaing
+										# Move/rename the file to a new location without renaming
+										None
 									else:
 										None 
 								else:

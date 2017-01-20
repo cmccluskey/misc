@@ -56,6 +56,18 @@ extdict = {
 		'ASCII text': 79,
 		'automake makefile script': 9
 	},
+	'apalbum': {
+		'Apple binary property list': 1
+	},
+	'apfolder': {
+		'Apple binary property list': 1
+	},
+	'apmaster': {
+		'Apple binary property list': 1
+	},
+	'apversion': {
+		'Apple binary property list': 1
+	},
 	'apdb': {
 		'SQLite 3.x data': 13
 	},
@@ -104,6 +116,10 @@ extdict = {
 		'ASCII text': 1,
 		'Bourne-Again shell script': 6,
 		'UTF-8 Unicode text': 1
+	},
+	'bash_history':
+	{
+		'ASCII text': 1
 	},
 	'basic': {
 		'ASCII text': 1
@@ -166,6 +182,10 @@ extdict = {
 	'cab': {
 		'Microsoft Cabinet archive data': 520
 	},
+	'cache': {
+		'NeXT/Apple typedstream data': 1,
+		'Apple binary property list': 1
+	},
 	'caf': {
 		'CoreAudio Format audio file version 1': 2531
 	},
@@ -206,8 +226,14 @@ extdict = {
 	'certs': {
 		'ASCII text': 2
 	},
+	'cfg': {
+		'ASCII text': 1
+	},
 	'chm': {
 		'MS Windows HtmlHelp Data': 1
+	},
+	'cgi': {
+		'ASCII text': 1
 	},
 	'cla': {
 		'compiled Java class data': 1
@@ -324,6 +350,9 @@ extdict = {
 		'Algol 68 source': 2,
 		'C source': 3,
 		'POSIX shell script': 2
+	},
+	'dat': {
+		'Apple binary property list': 1
 	},
 	'db': {
 		'ASCII text': 2,
@@ -489,6 +518,9 @@ extdict = {
 		'ISO-8859 text': 1,
 		'XML 1.0 document': 235
 	},
+	'enc': {
+		'ASCII text': 1
+	},
 	'env': {
 		'C source': 3,
 		'makefile script': 18
@@ -541,6 +573,9 @@ extdict = {
 	},
 	'filelist': {
 		'ASCII text': 6
+	},
+	'fingerprint': {
+		'ASCII text': 1
 	},
 	'flp': {
 		'DOS/MBR boot sector': 1
@@ -599,6 +634,9 @@ extdict = {
 	},
 	'gif': {
 		'GIF image data': 12984
+	},
+	'gitignore': {
+		'ASCII text': 1
 	},
 	'gpg': {
 		'GPG key public ring': 1,
@@ -682,6 +720,9 @@ extdict = {
 		'ColorSync ICC Profile': 140,
 		'Microsoft ICM Color Profile': 9
 	},
+	'ichat': {
+		'Apple binary property list': 1
+	},
 	'icm': {
 		'ColorSync ICC Profile': 4,
 		'Microsoft ICM Color Profile': 29
@@ -706,6 +747,10 @@ extdict = {
 	'imz': {
 		'Zip archive data': 4
 	},
+	'in': {
+		'makefile script': 1,
+		'M4 macro processor script': 1
+	},
 	'inc': {
 		'ASCII text': 865,
 		'Algol 68 source': 5,
@@ -716,6 +761,9 @@ extdict = {
 	'incl': {
 		'ASCII text': 21,
 		'Algol 68 source': 9
+	},
+	'info': {
+		'ASCII text': 1
 	},
 	'ini': {
 		'ASCII text': 57,
@@ -742,7 +790,12 @@ extdict = {
 	},
 	'java': {
 		'ASCII text': 2607,
-		'Java source': 14162
+		'Java source': 14162,
+		'C source': 1,
+		'C++ source': 1,
+		'HTML document': 1,
+		'Algol 68 source': 1,
+		'Perl5 module source': 1
 	},
 	'jp2': {
 		'JPEG 2000 Part 1 (JP2)': 5
@@ -775,6 +828,13 @@ extdict = {
 		'Little-endian UTF-16 Unicode text': 11,
 		'UTF-8 Unicode (with BOM) text': 5,
 		'UTF-8 Unicode text': 3420
+	},
+	'jsp': {
+		'HTML document': 1
+	},
+	'jspf': {
+		'HTML document': 1,
+		'ASCII text': 1
 	},
 	'key': {
 		'PEM RSA private key': 7
@@ -819,11 +879,24 @@ extdict = {
 		'ASCII text': 23,
 		'UTF-8 Unicode text': 3
 	},
+	'lnx': {
+		'ASCII text': 1
+	},
 	'lo': {
 		'libtool object file': 21
 	},
+	'localstorage': {
+		'SQLite 3.x data': 1
+	},
+	'localstorage-wal': {
+		'SQLite Write-Ahead Log': 1
+	},
+	'lock': {
+		'ASCII text':1 
+	},
 	'log': {
 		'ASCII text': 23,
+		'Algol 68 source': 1
 	},
 	'lsp': {
 		'ASCII text': 2,
@@ -997,6 +1070,15 @@ extdict = {
 	'ogm': {
 		'Ogg data': 5
 	},
+	'old': {
+		'ASCII text': 1
+	},
+	'opt': {
+		'ASCII text': 1
+	},
+	'options': {
+		'ASCII text': 1
+	},
 	'ost': {
 		'Microsoft Outlook email folder (>=2003)': 2
 	},
@@ -1030,7 +1112,8 @@ extdict = {
 		'PEM DSA private key': 75,
 		'PEM RSA private key': 235,
 		'PEM certificate': 552,
-		'PEM certificate request': 87
+		'PEM certificate request': 87,
+		'ASCII text': 1
 	},
 	'pf': {
 		'ICC Profile': 4,
@@ -1092,6 +1175,10 @@ extdict = {
 		'C++ source':1,
 		'C source':1
 	},
+	'pp': {
+		'ASCII text': 1,
+		'C++ source': 1
+	},
 	'ppd': {
 		'PPD file': 33
 	},
@@ -1133,7 +1220,8 @@ extdict = {
 		'a /usr/bin/env python script': 165,
 		'a /usr/bin/python script': 17,
 		'a /usr/local/bin/python script': 2,
-		'Objective-C source': 1
+		'Objective-C source': 1,
+		'C++ source': 1
 	},
 	'pyc': {
 		'python 2.3 byte-compiled': 3,
@@ -1205,6 +1293,9 @@ extdict = {
 	'rsa': {
 		'PEM RSA private key': 1
 	},
+	'rspec': {
+		'ASCII text': 1,
+	},
 	'rsrc': {
 		'Apple HFS/HFS+ resource fork': 565,
 		'AppleSingle encoded Macintosh file': 10
@@ -1214,6 +1305,21 @@ extdict = {
 	},
 	'rv': {
 		'RealMedia file': 1
+	},
+	'S': {
+		'assembler source': 1,
+		'C source': 1
+	},
+	's': {
+		'assembler source': 1,
+		'C source': 1,
+		'ASCII text': 1
+	},
+	'safaripush': {
+		'Zip archive data': 1
+	},
+	'sample': {
+		'POSIX shell script': 1
 	},
 	'scss': {
 		'ASCII text': 1
@@ -1262,6 +1368,9 @@ extdict = {
 	'spd': {
 		'X11 Speedo font data': 8
 	},
+	'spf': {
+		'gzip compressed data': 1
+	},
 	'springtide': {
 		'ASCII text': 1
 	},
@@ -1292,6 +1401,10 @@ extdict = {
 		'PEM certificate': 24,
 		'PEM certificate request': 24
 	},
+	'ssl': {
+		'ASCII text': 1,
+		'makefile script': 1
+	},
 	'strings': {
 		'ASCII text': 100,
 		'Apple binary property list': 10,
@@ -1300,6 +1413,23 @@ extdict = {
 		'UTF-8 Unicode (with BOM) text': 50,
 		'UTF-8 Unicode text': 263,
 		'XML 1.0 document': 72
+	},
+	'sublime-commands': {
+		'ASCII text': 1
+	},
+	'sublime-keymap': {
+		'ASCII text': 1
+	},
+	'sublime-package': {
+		'Zip archive data': 1
+	},
+	'sublime-settings': {
+		'ASCII text': 1
+	},
+	'sublime-snippet': {
+		'UTF-8 Unicode text': 1,
+		'ASCII text': 1,
+		'LaTeX document': 1
 	},
 	'svg': {
 		'SVG Scalable Vector Graphics image': 1377
@@ -1315,6 +1445,9 @@ extdict = {
 	},
 	't': {
 		'Perl script text executable': 1,
+		'ASCII text': 1
+	},
+	'tag': {
 		'ASCII text': 1
 	},
 	'tar': {
@@ -1343,13 +1476,20 @@ extdict = {
 		'UTF-8 Unicode text': 29
 	},
 	'tgz': {
-		'gzip compressed data': 48
+		'gzip compressed data': 48,
+		'XZ compressed data':1
 	},
 	'tif': {
 		'TIFF image data': 6200
 	},
 	'tiff': {
 		'TIFF image data': 15431
+	},
+	'tmPreferences': {
+		'XML 1.0 document': 1
+	},
+	'tmSnippet': {
+		'XML 1.0 document': 1
 	},
 	'torrent': {
 		'BitTorrent file': 4241
@@ -1436,8 +1576,14 @@ extdict = {
 	'wav': {
 		'RIFF (little-endian) data': 589
 	},
+	'xcconfig': {
+		'ASCII text': 1
+	},
 	'webhistory': {
 		'Apple binary property list': 31814
+	},
+	'webbookmark': {
+		'Apple binary property list': 1
 	},
 	'wmf': {
 		'ms-windows metafont .wmf': 3
@@ -1484,7 +1630,9 @@ extdict = {
 		'XML 1.0 document': 7346,
 		'XML 1.0 document text': 559,
 		'XML document': 19,
-		'ASCII text': 1
+		'ASCII text': 1,
+		'exported SGML document': 1,
+		'HTML document': 1
 	},
 	'xpm': {
 		'X pixmap image': 257
@@ -1492,6 +1640,9 @@ extdict = {
 	'xpt': {
 		'XPConnect Typelib version 1.1': 1,
 		'XPConnect Typelib version 1.2': 3
+	},
+	'xsd': {
+		'XML 1.0 document': 1
 	},
 	'xsl': {
 		'SVG Scalable Vector Graphics image': 3,
