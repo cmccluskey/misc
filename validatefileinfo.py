@@ -74,14 +74,33 @@ def changeCase(filename, extension, case, extdict):
 def changeExt(filename, extension, case, extdict = {}):
 	(path, strippedfile, strippedext) = fileParts(filename)
 	filename = path + '/' + strippedfile + '.' + extension
-	filename = changeCase(filename, extension, case, extdict)
+#	filename = changeCase(filename, extension, case, extdict)
 	if (args.debug): print "changeExt: filename: %s" % filename
 	return filename
 
-def writeLog(handles, line):
+def changeMovePath(filename, path):
+	movedir_clean = path.rstrip('/')
+	(tpath, tfile, textension) = fileParts(filename)
+	if not excludeRootCheckPassed(movedir_clean, ['/']):
+		movedir_clean = os.path.abspath(movedir_clean)
+		if (args.debug): print "Absolute move path found."
+		if textension:
+			return movedir_clean + '/' + tfile + '.' + textension
+		else:
+			return movedir_clean + '/' + tfile
+	else:
+		movedir_clean = os.path.basename(movedir_clean)
+		if (args.debug): print "Relative move path found."
+		if textension:
+			return tpath + '/' + movedir_clean + '/' + tfile + '.' + textension
+		else:
+			return tpath + '/' + movedir_clean + '/' + tfile 
+
+def writeLog(handles, line, newline=True):
 	for handle in handles:
 		handle.write(line)
-		handle.write('\n')
+		if newline:
+			handle.write('\n')
 	return True
 
 def fileParts(filename):
@@ -101,12 +120,13 @@ parser.add_argument('-d', dest='debug', action='store_true', default=False, help
 parser.add_argument('-e', dest='revextdict', default='./dicts/revextension.dict', help='Override the location of the extension dictionary.') 
 parser.add_argument('-p', dest='path', required=True, help='Root path to start validation run.')
 parser.add_argument('-C', dest='case', default='lower', nargs=1, choices=['upper','lower','stored'], help='Specify case (default lower).')
+parser.add_argument('-0', dest='addextension', action='store_true', default=False, help='Add an extension if a default extension is available. Log entries in report if DEFAULT is not found.')
+parser.add_argument('-D', dest='forcedest', action='store_true', default=False, help='Force the use of the default extension, even if the currnet extension is valid.') 
 parser.add_argument('-r', dest='reportfile', default=False, help='Enable a report, and store the report at this location. If run without other operation, only the report of what would be done will be written.')
 parser.add_argument('-v', dest='verbose', action='store_true', default=False, help='Normally skipped, unavailable, and ok files are not written to the report, this enables those entries in the report.') 
-parser.add_argument('-c', dest='caserun', action='store_true', default=False, help='Perform a modify case run.')
-parser.add_argument('-m', dest='moverun', default=False, help='Perform a moving run by specififying a destination subdirectory relative to the current filename. You can provide a full path to move to a set location.')
-parser.add_argument('-n', dest='namerun', action='store_true', default=False, help='Perform a rename-in-place run, modifying the suffix and case in place.')
-parser.add_argument('-0', dest='addextension', action='store_true', default=False, help='Add an extension, if DEFAULT is found, for files that don\'t have one. Log entries in report if DEFAULT is not found.')
+parser.add_argument('-c', dest='caserun', action='store_true', default=False, help='Change the case.')
+parser.add_argument('-m', dest='moverun', default=False, help='Move the file. Perform a moving run by specififying a subdirectory relative to the current filename in which to move the file. You can provide a full path to move to a fixed location.')
+parser.add_argument('-n', dest='namerun', action='store_true', default=False, help='Perform a rename run, modifying the suffix.')
 
 # True out arg parser
 args = parser.parse_args()
@@ -119,13 +139,13 @@ if not (args.reportfile or args.caserun or args.moverun or args.namerun):
 	sys.exit(1)
 else: None
 
-# Make sure that there isn't more than one validation mode set
-if ( (args.caserun and args.moverun and args.namerun) or (args.caserun and args.namerun) or (args.caserun and args.moverun) or (args.moverun and args.namerun) ):
-	parser.print_help()
-	print "\n"
-	print "Error: The runtime mode must be only one of changing the case (-c), move nonconforming files to a directory (-m), to rename in place (-n)."
-	sys.exit(1)
-else: None
+## Make sure that there isn't more than one validation mode set
+#if ( (args.caserun and args.moverun and args.namerun) or (args.caserun and args.namerun) or (args.caserun and args.moverun) or (args.moverun and args.namerun) ):
+#	parser.print_help()
+#	print "\n"
+#	print "Error: The runtime mode must be only one of changing the case (-c), move nonconforming files to a directory (-m), to rename in place (-n)."
+#	sys.exit(1)
+#else: None
 
 # Don't navigate these root paths
 # TODO: Add as argument or config file
@@ -192,14 +212,17 @@ for root, dirs, files in os.walk(args.path):
 		countTotal += 1
 		# File under test
 		testfile =  os.path.join(root, file)
-		# Proposed name after case rewrite
-		casefile = ''
-		# Proposed iterated name change
+		if (args.debug): print "Processing %s ..." % testfile
+		# Placeholder for changes
 		modifiedfile = ''
-		# Flag to fix the file (used for safety checks)
-		needsfixing=False
-		# Flag to move the file without fixing name (safety check)
-		nomodifiedfile=False
+		# Flag for case rewrite
+		casechange = False
+		# Flag for modification
+		modifychange = False
+		# Flag for move
+		movechange = False
+		# Suffix to use
+		extensionchange = ''
 		# Check for excluded paths from root
 		if excludeRootCheckPassed(testfile,exclude_paths):
 			# Check excluded directories
@@ -230,6 +253,7 @@ for root, dirs, files in os.walk(args.path):
 						else:
 							# We are going to Scan this file now
 							countScanned += 1
+ 
 							if (args.debug): print "Testfile: %s" % testfile
 							extension = fileParts(testfile)[2]
 							if (args.debug): print "Extension: %s" % extension
@@ -239,45 +263,38 @@ for root, dirs, files in os.walk(args.path):
 								if extension:
 									# Note a case fault. If we aren't rewriting case, revert the "destination" file back to the original.
 									# Future case changes will be done on extension rewrites.			
-									casefile = changeCase(testfile, extension, args.case, revextension[description])
-									if not (casefile == testfile):
+									tryfile = changeCase(testfile, extension, args.case, revextension[description])
+									if not (tryfile == testfile):
 										countCase += 1
 										if args.caserun:
 											writeLog(active_log_handles, "%s has bad case (%s) and will be changed to %s." % (testfile,args.case,casefile))
-											needsfixing=True
-										else: 
-											# Reverse the change
-											casefile = testfile
+											casechange = True											
+										else: None 
 									else: None
-									# Initalize modifiedfile to the output of the casefile
-									modifiedfile = casefile
-#									print "Casefile: %s" % (casefile)
-									# Check extension mapping via description
-#									print "Extension:'%s', Keys:%s" % (extension, revextension[description].keys())	
+									# Check extension vis description
 									if ('DEFAULT' in revextension[description].keys()):
 										if (extension.lower() == revextension[description]['DEFAULT'][0].lower()):
 											# Yes, the extension is correct for the description 
 											if (args.verbose): writeLog(active_log_handles, "%s has the correct extension '%s' for '%s'." % (testfile,extension,description))
 											elif (args.debug): print "%s has the correct extension '%s' for '%s'." % (testfile,extension,description)
 											countCorrect += 1
-											nomodifiedfile=True
 										else:
 											if ('EXCLUDE' in revextension[description].keys()):
 												if extension.lower() in revextension[description]['EXCLUDE']:
 													if (args.verbose): writeLog(active_log_handles, "%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description))
 													elif (args.debug): print "%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description)
-													countVariant += 1	
-													nomodifiedfile=True
+													countVariant += 1
 												else:
 													writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
-													modifiedfile = changeExt(casefile, revextension[description]['DEFAULT'][0], args.case, revextension[description])
 													countIncorrect += 1
-													needsfixing=True 
+													modifychange = True
+													extensionchange = revextension[description]['DEFAULT'][0]
 											else:
 												writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
-												modifiedfile = changeExt(casefile, revextension[description]['DEFAULT'][0], args.case, revextension[description])
+												modifiedfile = changeExt(testfile, revextension[description]['DEFAULT'][0], args.case, revextension[description])
 												countIncorrect += 1
-												needsfixing=True
+												modifychange = True
+												extensionchange = revextension[description]['DEFAULT'][0]
 #												if (args.debug): print "Extension Mapping: modifiedfile: %s" % modifiedfile
 									# Is a variant
 									elif (extension.lower() in revextension[description].keys()):
@@ -289,93 +306,112 @@ for root, dirs, files in os.walk(args.path):
 												elif (args.debug): print "%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description)
 											else: None
 											countVariant += 1
-											nomodifiedfile=True
  										else:
 											# Is there a DEFAULT?
 											if ('DEFAULT' in revextension[description].keys()):
-												# Then move
-												writeLog(active_log_handles, "%s has a known extension '%s' for '%s' but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
-												modifiedfile = changeExt(casefile, revextension[description]['DEFAULT'][0], args.case, revextension[description])
-												countVariant += 1
-												needsfixing=True
-#												if (args.debug): print "Add Default: modifiedfile: %s" % modifiedfile
+												if args.forcedest:
+													writeLog(active_log_handles, "%s has a known extension '%s' for '%s' but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
+													modifychange = True
+													extensionchange = revextension[description]['DEFAULT'][0]
+													countVariant += 1
+												else:
+													if (args.verbose): writeLog(active_log_handles, "%s has a known extension '%s' for '%s'." % (testfile,extension,description))
+													elif (args.debug): print "%s has a known extension '%s' for '%s'." % (testfile,extension,description)
+													countVariant += 1	
 											else:
 											# There isn't a default, so do nothing
 												if (args.verbose): writeLog(active_log_handles, "%s has a known extension '%s' for '%s' and the extension won't be changed." % (testfile,extension,description))
 												elif (args.debug): print "%s has a known extension '%s' for '%s' and the extension won't be changed." % (testfile,extension,description)
-												else: None
 												countVariant += 1
-												nomodifiedfile=True
 									else:
 										# Assuming incorrect extension for description
 										countIncorrect += 1
 										# Is there an alternate extenstion available?
 										if ('DEFAULT' in revextension[description].keys()):
-											writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
-											modifiedfile = changeExt(casefile, revextension[description]['DEFAULT'][0], args.case, revextension[description])
-											needsfixing=True
-#											if (args.debug): print "Add Default #2: modifiedfile: %s" % modifiedfile
+											if args.forcedest:
+												writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
+												modifychange = True
+												extensionchage = revextension[description]['DEFAULT'][0]
+											else: 
+												writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but the default extension '%s' will not be assigned." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
+												movechange = True
 										else:	
 											writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but it's unclear what possible extension to use '%s'." % (testfile,extension,description,revextension[description].keys()))
-											needsfixing=True
-											nomodifiedfile=True
+											movechange = True
 								else:
 									countMissingExt += 1
-									modifiedfile=testfile
-									casefile=testfile
 									if args.addextension:
 										if ('DEFAULT' in revextension[description].keys()):
-											writeLog(active_log_handles, "%s has no extension, but has a potential default of '%s' for '%s'." % (testfile,revextension[description]['DEFAULT'][0],description))
 											if (args.addextension):
-												modifiedfile = changeExt(casefile, revextension[description]['DEFAULT'][0], args.case, revextension[description])
-												needsfixing=True
-												if (args.debug): print "Add Extension: modifiedfile: %s" % modifiedfile
-											else: None
+												writeLog(active_log_handles, "%s has no extension, but has a default of '%s' for '%s'." % (testfile,revextension[description]['DEFAULT'][0],description))
+												modifychange = True
+												extensionchange = revextension[description]['DEFAULT'][0]
+											else:
+												if (args.verbose): writeLog(active_log_handles, "%s has no extension for '%s', and the default will not be applied." % (testfile,description))
+												elif (args.debug): print "%s has no extension for '%s', and the default will not be applied." % (testfile,description)		
 										else:
-											writeLog(active_log_handles, "%s has no extension, and there is no default extension set for '%s'." % (testfile, description))
-									else: None
-								# Begin actual fixes here
-								# Interlock checks before mucking around with files
-								if (modifiedfile == ''):
-									print "Error: The destination filename was not specified, and indicates a filter/modification problem."
-									print "Testfile: %s\nModified: %s" % (testfile,modifiedfile)
-									sys.exit(1)
-								else: None
-								if (casefile == ''):
-									print "Error: The case-changed filename was not specified, and indicates a filter/modification problem."
-									print "Testfile: %s\nCasefile: %s" % (testfile,casefile)
-									sys.exit(1)
-								if needsfixing:
-									if (modifiedfile == testfile):
-										if not nomodifiedfile:
-											print "Error: We have a needsfixing flag with no changes in filename"
-											print "Testfile: %s\nModified: %s" % (testfile,modifiedfile)
-											sys.exit(1)
-										else: 
-											None # This indicates a move without changing the name
-									else: 
-										None # Normal case
-									# Now perform one of the run modes
-									# Just alter the case of the extension in-place (to casefile)
-									if (args.caserun):
-										# Make sure the destination file doesn't exit, else throw error and bail for now
-										# Move/rename the file to a new case
-										None	
-									# Move/rename the file to modfied file name in the same location (in-place)
-									elif (args.namerun):
-										# Make sure the destination doesn't exit, else throw error and bail for now
-										# Move/rename the file to a new name
-										None
-									# Do not modify the file any further, just move the errored file to a global path OR to local (to file) subdirectory
-									elif (args.moverun):
-										# Global path or local subdirectory move
-										# Alter destination file path to compensate
-										# Make sure the directory exists, if not create it
-										# Make sure the destination doesn't exit, else throw error and bail for now
-										# Move/rename the file to a new location without renaming
-										None
+											if (args.verbose): writeLog(active_log_handles, "%s has no extension for '%s', and no default is available." % (testfile,description))
+											elif (args.debug): print "%s has no extension for '%s', and no default is available." % (testfile,description)
+											movechange = True
 									else:
-										None 
+										if (args.verbose): writeLog(active_log_handles, "%s has no extension for '%s', and no default is available." % (testfile,description))
+										elif (args.debug): print "%s has no extension for '%s', and no default is available." % (testfile,description)
+										movechage = True
+								# Now perform the run modes
+								# Allowing previous mods, otherwise reset modified
+								if (modifiedfile == ''): 
+									modifiedfile = testfile
+								# Move/rename the file to modfied file name 
+								if (args.namerun):
+									if modifychange:
+										modifiedfile = changeExt(modifiedfile, extensionchange, args.case, revextension[description])
+								# Just alter the case of the extension
+								if (args.caserun):
+									if casechange:
+										modifiedfile = changeCase(modifiedfile, fileParts(modifiedfile)[2], args.case, revextension[description]) 
+								# Change the path of the errored file to a global path OR to local (realtive to file) subdirectory
+								if (args.moverun):
+									if movechange:
+										modifiedfile = changeMovePath(modifiedfile, args.moverun)
+								if (args.namerun or args.caserun or args.moverun):
+									if (args.debug): print "Comparing '%s' and '%s'." % (testfile,modifiedfile)
+									if (testfile != modifiedfile):
+										# Make sure the directory exists, if not create it
+										if not os.path.exists(fileParts(modifiedfile)[0]):
+											try:
+												os.makedirs(fileParts(modifiedfile)[0])
+											except OSError:
+												writeLog(active_log_handles, "Error: Cannot create directory %s." % (fileParts(modifiedfile)[0]))
+												sys.exit(1)
+											else:
+												# Make sure the destination doesn't exit, else throw error and bail for now
+												if not os.path.isfile(modifiedfile):
+													writeLog(active_log_handles, "Moving %s to %s... " % (testfile,modifiedfile))
+													try:
+													#	os.rename(testfile,modifiedfile)
+														None
+													except OSError:
+														writeLog(active_log_handles, "FAILED")
+														writeLog(active_log_handles, "Cannot move %s to %s." % (testfile,modifiedfile))
+														sys.exit(1)
+													else:
+														writeLog(active_log_handles, "OK")	
+												else:
+													writeLog(active_log_handles, "Error: Won't clobber existing file %s." % (modifiedfile))
+													sys.exit(1) 
+									else:
+										if (modifychange or casechange or movechange):
+											if (args.verbose):
+												writeLog(active_log_handles, "File %s has no changes." % (testfile))
+											elif (args.debug): print "File %s has no changes." % (testfile)
+											else: None
+#											print "Error: There is no difference in the source file %s or its destination. This shouldn't happen!" % testfile
+#											sys.exit(1)
+										else:
+											if (args.verbose):
+												writeLog(active_log_handles, "File %s has no changes." % (testfile))
+											elif (args.debug): print "File %s has no changes." % (testfile)
+											else: None
 								else:
 									if (args.verbose): writeLog(active_log_handles, "No modification of %s required." % (testfile))
 									elif (args.debug): print "No modification of %s required." % (testfile)

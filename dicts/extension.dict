@@ -1146,7 +1146,8 @@ extdict = {
 	},
 	'plist': {
 		'Apple binary property list': 14423,
-		'XML 1.0 document': 18632
+		'XML 1.0 document': 18632,
+		'ASCII text': 1
 	},
 	'plistz': {
 		'zlib compressed data': 2815
