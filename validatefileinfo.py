@@ -287,12 +287,14 @@ for root, dirs, files in os.walk(args.path):
 												else:
 													writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
 													countIncorrect += 1
+													movechange = True
 													modifychange = True
 													extensionchange = revextension[description]['DEFAULT'][0]
 											else:
 												writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
 												modifiedfile = changeExt(testfile, revextension[description]['DEFAULT'][0], args.case, revextension[description])
 												countIncorrect += 1
+												movechange = True
 												modifychange = True
 												extensionchange = revextension[description]['DEFAULT'][0]
 #												if (args.debug): print "Extension Mapping: modifiedfile: %s" % modifiedfile
@@ -388,8 +390,8 @@ for root, dirs, files in os.walk(args.path):
 												if not os.path.isfile(modifiedfile):
 													writeLog(active_log_handles, "Moving %s to %s... " % (testfile,modifiedfile))
 													try:
-													#	os.rename(testfile,modifiedfile)
-														None
+														os.rename(testfile,modifiedfile)
+													#	None
 													except OSError:
 														writeLog(active_log_handles, "FAILED")
 														writeLog(active_log_handles, "Cannot move %s to %s." % (testfile,modifiedfile))
