@@ -124,9 +124,9 @@ parser.add_argument('-0', dest='addextension', action='store_true', default=Fals
 parser.add_argument('-D', dest='forcedest', action='store_true', default=False, help='Force the use of the default extension, even if the currnet extension is valid.') 
 parser.add_argument('-r', dest='reportfile', default=False, help='Enable a report, and store the report at this location. If run without other operation, only the report of what would be done will be written.')
 parser.add_argument('-v', dest='verbose', action='store_true', default=False, help='Normally skipped, unavailable, and ok files are not written to the report, this enables those entries in the report.') 
-parser.add_argument('-c', dest='caserun', action='store_true', default=False, help='Change the case.')
-parser.add_argument('-m', dest='moverun', default=False, help='Move the file. Perform a moving run by specififying a subdirectory relative to the current filename in which to move the file. You can provide a full path to move to a fixed location.')
-parser.add_argument('-n', dest='namerun', action='store_true', default=False, help='Perform a rename run, modifying the suffix.')
+parser.add_argument('-c', dest='caserun', action='store_true', default=None, help='Change the case.')
+parser.add_argument('-m', dest='moverun', default=None, help='Move the file. Perform a moving run by specififying a subdirectory relative to the current filename in which to move the file. You can provide a full path to move to a fixed location.')
+parser.add_argument('-n', dest='namerun', action='store_true', default=None, help='Perform a rename run, modifying the suffix.')
 
 # True out arg parser
 args = parser.parse_args()
@@ -287,17 +287,13 @@ for root, dirs, files in os.walk(args.path):
 												else:
 													writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
 													countIncorrect += 1
-													movechange = True
 													modifychange = True
 													extensionchange = revextension[description]['DEFAULT'][0]
 											else:
 												writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
-												modifiedfile = changeExt(testfile, revextension[description]['DEFAULT'][0], args.case, revextension[description])
 												countIncorrect += 1
-												movechange = True
 												modifychange = True
 												extensionchange = revextension[description]['DEFAULT'][0]
-#												if (args.debug): print "Extension Mapping: modifiedfile: %s" % modifiedfile
 									# Is a variant
 									elif (extension.lower() in revextension[description].keys()):
 										# Is this extension EXCLUDED from being rewritten
@@ -363,20 +359,29 @@ for root, dirs, files in os.walk(args.path):
 								# Allowing previous mods, otherwise reset modified
 								if (modifiedfile == ''): 
 									modifiedfile = testfile
+								if args.verbose: writeLog(active_log_handles, "args.namerun: %s args.caserun: %s args.moverun: %s modifychange: %s casechange: %s movechange: %s" % (args.namerun, args.caserun, args.moverun, modifychange, casechange, movechange))
+								elif args.debug: print "args.namerun: %s args.caserun: %s args.moverun: %s modifychange: %s casechange: %s movechange: %s" % (args.namerun, args.caserun, args.moverun, modifychange, casechange, movechange)
+
 								# Move/rename the file to modfied file name 
-								if (args.namerun):
+								if args.namerun:
 									if modifychange:
 										modifiedfile = changeExt(modifiedfile, extensionchange, args.case, revextension[description])
 								# Just alter the case of the extension
-								if (args.caserun):
+								if args.caserun:
 									if casechange:
 										modifiedfile = changeCase(modifiedfile, fileParts(modifiedfile)[2], args.case, revextension[description]) 
 								# Change the path of the errored file to a global path OR to local (realtive to file) subdirectory
-								if (args.moverun):
+								if args.moverun:
+									if args.verbose: writeLog(active_log_handles, "Debug: In moverun case...")
+									elif args.debug: print "Debug: In moverun case..."
 									if movechange:
+										if (args.verbose): writeLog(active_log_handles, "Debug: Perform movechange modifcation.")
+										elif (args.debug): print "Debug: Perform movechange modifcation."
 										modifiedfile = changeMovePath(modifiedfile, args.moverun)
 								if (args.namerun or args.caserun or args.moverun):
-									if (args.debug): print "Comparing '%s' and '%s'." % (testfile,modifiedfile)
+									if (args.verbose): writeLog(active_log_handles, "Comparing '%s' and '%s'." % (testfile,modifiedfile)
+)
+									elif (args.debug): print "Comparing '%s' and '%s'." % (testfile,modifiedfile)
 									if (testfile != modifiedfile):
 										# Make sure the directory exists, if not create it
 										if not os.path.exists(fileParts(modifiedfile)[0]):
@@ -387,20 +392,21 @@ for root, dirs, files in os.walk(args.path):
 												sys.exit(1)
 											else:
 												# Make sure the destination doesn't exit, else throw error and bail for now
-												if not os.path.isfile(modifiedfile):
-													writeLog(active_log_handles, "Moving %s to %s... " % (testfile,modifiedfile))
-													try:
-														os.rename(testfile,modifiedfile)
-													#	None
-													except OSError:
-														writeLog(active_log_handles, "FAILED")
-														writeLog(active_log_handles, "Cannot move %s to %s." % (testfile,modifiedfile))
-														sys.exit(1)
-													else:
-														writeLog(active_log_handles, "OK")	
-												else:
-													writeLog(active_log_handles, "Error: Won't clobber existing file %s." % (modifiedfile))
-													sys.exit(1) 
+												None
+										if not os.path.isfile(modifiedfile):
+											writeLog(active_log_handles, "Moving %s to %s... " % (testfile,modifiedfile))
+											try:
+												os.rename(testfile,modifiedfile)
+											#	None
+											except OSError:
+												writeLog(active_log_handles, "FAILED")
+												writeLog(active_log_handles, "Cannot move %s to %s." % (testfile,modifiedfile))
+												sys.exit(1)
+											else:
+												writeLog(active_log_handles, "OK")	
+										else:
+											writeLog(active_log_handles, "Error: Won't clobber existing file %s." % (modifiedfile))
+											sys.exit(1) 
 									else:
 										if (modifychange or casechange or movechange):
 											if (args.verbose):
