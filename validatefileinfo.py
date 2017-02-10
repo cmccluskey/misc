@@ -96,6 +96,27 @@ def changeMovePath(filename, path):
 		else:
 			return tpath + '/' + movedir_clean + '/' + tfile 
 
+def incrementSerial(filename):
+# 002-(0005).jpg
+	(tpath, tfile, text) = fileParts(filename)
+	pattern = re.compile(r'.*-\((\d{4})\)$')
+	subpattern = re.compile(r'(.*-\()\d{4}(\))$')
+	match = pattern.match(tfile)
+	if match:
+		current = match.group(1)
+		if (args.debug): print "incrementSerial: current: %s" % current
+		incremented = str(int(current) + 1).zfill(len(current))
+		if (args.debug): print "incrementSerial: incremented: %s" % incremented
+		tfile = subpattern.sub(r'\g<1>%s\g<2>' % incremented, tfile)
+	else:
+		tfile = tfile + '-(0001)'
+	if text:
+		filename = tpath + '/' + tfile + '.' + text
+	else:
+		filename = tpath + '/' + tfile
+	if (args.debug): print "incrementSerial: filename: %s" % filename
+	return filename
+
 def writeLog(handles, line, newline=True):
 	for handle in handles:
 		handle.write(line)
@@ -122,6 +143,7 @@ parser.add_argument('-p', dest='path', required=True, help='Root path to start v
 parser.add_argument('-C', dest='case', default='lower', nargs=1, choices=['upper','lower','stored'], help='Specify case (default lower).')
 parser.add_argument('-0', dest='addextension', action='store_true', default=False, help='Add an extension if a default extension is available. Log entries in report if DEFAULT is not found.')
 parser.add_argument('-D', dest='forcedest', action='store_true', default=False, help='Force the use of the default extension, even if the currnet extension is valid.') 
+parser.add_argument('-S', dest='serializename', action='store_true', default=False, help='Instead of overwriting a file or stopping, append a padded serial number at the end.')
 parser.add_argument('-r', dest='reportfile', default=False, help='Enable a report, and store the report at this location. If run without other operation, only the report of what would be done will be written.')
 parser.add_argument('-v', dest='verbose', action='store_true', default=False, help='Normally skipped, unavailable, and ok files are not written to the report, this enables those entries in the report.') 
 parser.add_argument('-c', dest='caserun', action='store_true', default=None, help='Change the case.')
@@ -153,7 +175,8 @@ exclude_paths = ['/dev','/tmp','/Volumes']
 
 # Don't navigate paths containing the following strings (useful if you have long lived directories from the rumtime mode move)
 # TODO: Add as argument or config file
-exclude_directories = ['_badsuffix']
+#exclude_directories = ['_bad','_badsuffix']
+exclude_directories = ['_badXXXXxxxxx']
 
 
 # Validate and add movedir to the proper exclude bucket
@@ -288,11 +311,13 @@ for root, dirs, files in os.walk(args.path):
 													writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
 													countIncorrect += 1
 													modifychange = True
+													movechange = True
 													extensionchange = revextension[description]['DEFAULT'][0]
 											else:
 												writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
 												countIncorrect += 1
 												modifychange = True
+												movechange = True
 												extensionchange = revextension[description]['DEFAULT'][0]
 									# Is a variant
 									elif (extension.lower() in revextension[description].keys()):
@@ -310,6 +335,7 @@ for root, dirs, files in os.walk(args.path):
 												if args.forcedest:
 													writeLog(active_log_handles, "%s has a known extension '%s' for '%s' but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
 													modifychange = True
+													movechange = True
 													extensionchange = revextension[description]['DEFAULT'][0]
 													countVariant += 1
 												else:
@@ -329,6 +355,7 @@ for root, dirs, files in os.walk(args.path):
 											if args.forcedest:
 												writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
 												modifychange = True
+												movechange = True
 												extensionchage = revextension[description]['DEFAULT'][0]
 											else: 
 												writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but the default extension '%s' will not be assigned." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
@@ -393,11 +420,15 @@ for root, dirs, files in os.walk(args.path):
 											else:
 												# Make sure the destination doesn't exit, else throw error and bail for now
 												None
+										if args.serializename:
+											while (os.path.isfile(modifiedfile)):
+												modifiedfile = incrementSerial(modifiedfile)
 										if not os.path.isfile(modifiedfile):
 											writeLog(active_log_handles, "Moving %s to %s... " % (testfile,modifiedfile))
 											try:
 												os.rename(testfile,modifiedfile)
-											#	None
+#												None
+#												sys.exit(1)
 											except OSError:
 												writeLog(active_log_handles, "FAILED")
 												writeLog(active_log_handles, "Cannot move %s to %s." % (testfile,modifiedfile))
@@ -413,8 +444,6 @@ for root, dirs, files in os.walk(args.path):
 												writeLog(active_log_handles, "File %s has no changes." % (testfile))
 											elif (args.debug): print "File %s has no changes." % (testfile)
 											else: None
-#											print "Error: There is no difference in the source file %s or its destination. This shouldn't happen!" % testfile
-#											sys.exit(1)
 										else:
 											if (args.verbose):
 												writeLog(active_log_handles, "File %s has no changes." % (testfile))
@@ -446,8 +475,6 @@ if args.reportfile:
 	outf.flush()
 	outf.close()
 else: None
-
-#print os.stat(os.path.abspath(args.reportfile + temp_ext)).st_size 
 
 # Do stats calculation
 endTime         = datetime.now()
