@@ -9,13 +9,16 @@ if [ -e  /etc/network/interfaces ]; then
   sudo apt-get install -y libdvdread4
   sudo /usr/share/doc/libdvdread4/install-css.sh
   sudo /sbin/ldconfig
+  sudo apt-get install -y nfs-common
   sudo apt-get install -y vlc
   sudo apt-get install -y git
   sudo apt-get install -y ruby 
-  sudo apt-get install -y python-pip
+#  sudo apt-get install -y python-pip
+  sudo apt-get install -y python3
+  sudo apt-get install -y python3-pip
   git config --global user.email "mcclusk@gmail.com"
   git config --global user.name "Chris McCluskey"
-  sudo pip install python-magic
+  sudo pip3 install python-magic
 
 ###################
 # Redhat/Centos
@@ -35,3 +38,7 @@ elif [ -e /etc/redhat-release ]; then
   #sudo yum install --disableplugin=fastestmirror -y unrar
   #sudo yum install --disableplugin=fastestmirror -y p7zip
 fi
+
+sudo mkdir /mnt/tmp
+sudo mkdir /mnt/tmp2
+sudo mkdir /mnt/tmp3
