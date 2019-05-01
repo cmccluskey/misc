@@ -67,7 +67,10 @@ parser.add_argument('-sf', dest='slavefile', default=False, required=True, help=
 args = parser.parse_args()
 
 # Set up the logger
-logging.basicConfig(stream=sys.stderr, level=logging.WARNING)
+if args.debug:
+  logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+else:
+  logging.basicConfig(stream=sys.stderr, level=logging.WARNING)
 log = logging.getLogger(__name__)
 ##for lh in ("pynoc", "pynoc.apc", "paramiko", "paramiko.transport"):
 ##    logging.getLogger(lh).setLevel(100)
@@ -110,7 +113,10 @@ for masterRow in master:
     print(e)
 ## For each slavetitle in slave
   for slaveRow in slave:
-    slaveTitle = slaveRow[slaveField].split(' - ')[0]
+    if ' - ' in slaveRow[slaveField]:
+      slaveTitle = slaveRow[slaveField].split(' - ')[0]
+    else:
+      slaveTitle = slaveRow[slaveField]
     # Remove trailing parens
     slaveTitle = remove_trailing_paren(slaveTitle)
 ### Get score

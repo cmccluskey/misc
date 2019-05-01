@@ -117,9 +117,9 @@ while validpage:
   else:
     validpage = 0 
 
-sortedlistings = sorted(listings, key=operator.itemgetter(0))
+#sortedlistings = sorted(listings, key=operator.itemgetter(0))
 # Write to CSV
 with open(args.csvfile, 'a', encoding='utf-8') as toWrite:
   writer = csv.writer(toWrite)
-  writer.writerows(sortedlistings)
+  writer.writerows(listings)
 
