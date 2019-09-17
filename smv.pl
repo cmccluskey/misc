@@ -15,10 +15,10 @@
 use strict;
 use Cwd;
 
-my $DEBUG = 0;
+my $DEBUG = 1;
 my $VERSION ="2.1";
 
-my $OS_TYPE = "WINDOWS";
+my $OS_TYPE = "UNIX";
 my $NOTUNIX = 0;
 
 my $DIRSEP = '/';
@@ -185,8 +185,10 @@ sub ADDFILES
 					($filename eq '.resource') ||  
 					($filename eq '.xvpics') ||
 					# End of UNIX userspace exceptions
-					($filename =~ /recycled/i) 
+					($filename =~ /recycled/i) || 
 					# End of Win userspace exceptions
+                                        ($filename eq '.DS_Store')
+                                        # End of OSX userspace exceptions
 					) )
 				{
 					# Found a new subdirectory, so we call ADDFILES recursively

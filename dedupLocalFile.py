@@ -10,7 +10,9 @@
 # Ends with:
 # ' copy' 
 # ' copy N'
-# -(NNNNN)   
+# -(NNNNN)
+# ' (NN)'
+# '(NN)'   
 
 import argparse
 import errno
