@@ -40,6 +40,7 @@ parser.add_argument('-d', dest='debug', action='store_true', default=False, help
 parser.add_argument('-o', dest='opposite', action='store_true', default=False, help='If the file is the same, remove the DEST version of the file.') 
 parser.add_argument('-r', dest='recurse', action='store_true', default=False, help='Recurse into matching directories.')
 parser.add_argument('-v', dest='verbose', action='store_true', default=False, help='Verbose reporting.')
+parser.add_argument('-t', dest='test', action='store_true', default=False, help='Test and display the intended operation, but do not actually perform the operations on disk.')
 parser.add_argument('items', nargs='+', default=None)
 
 # True out arg parser
@@ -74,10 +75,13 @@ for item in args.items:
   elif os.path.isdir(item):
     if args.recurse:
       for root, dirs, files in os.walk(item):
-#        print("root: %s, dirs: %s, files: %s" % (root, dirs, files))
+        if args.debug:
+          print("root: %s, dirs: %s, files: %s" % (root, dirs, files))
         for f in files:
           sourcelist.append(os.path.join(root,f))
-# print(sourcelist)
+if args.debug:
+  print("Sourcelist:")
+  print(sourcelist)
 
 for sourcefile in sourcelist:
   if args.debug: print("Sourcefile: %s" % sourcefile)
@@ -109,11 +113,19 @@ for sourcefile in sourcelist:
           if args.opposite:
             # Remove destination file
             if args.verbose or args.debug: print("%s --X %s" % (sourcefile,destfile))
-#            os.remove(destfile)
+            if not args.test:
+              try:
+                os.remove(destfile)
+              except:
+                print("Warning: Could not remove destination file %s." % destfile)
           else:
             # Remove source file
             if args.verbose or args.debug: print("%s X-- %s" % (sourcefile,destfile))
-#            os.remove(sourcefile)
+            if not args.test:
+              try:
+                os.remove(sourcefile)
+              except:
+                print("Warning: Could not remove source file %s." % sourcefile)
         else:
           # They didn't match, do nothing
           if args.verbose or args.debug: print("%s --- %s" % (sourcefile,destfile)) 
@@ -121,13 +133,18 @@ for sourcefile in sourcelist:
       # Otherwise destination doesn't exist
         # Create folder tree (if needed)
         if not os.path.isdir(os.path.dirname(destfile)):
-          mkdir_p(os.path.dirname(destfile))
+          if not args.test:
+            try:
+              mkdir_p(os.path.dirname(destfile))
+            except:
+              print("Warning: Could not create directory %s." % os.path.dirname(destfile))
         # Move file
         if args.verbose or args.debug: print("%s --> %s" % (sourcefile,destfile))
-#        try:
-#          shutil.move(sourcefile, destfile)
-#        except:
-#          print("Error: Unable to move %s to %s." % (sourcefile,destfile))
+        if not args.test:
+          try:
+            shutil.move(sourcefile, destfile)
+          except:
+            print("Warning: Unable to move %s to %s." % (sourcefile,destfile))
 
 print("DONE.")
 
