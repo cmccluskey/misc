@@ -1,4 +1,4 @@
-#! C:/Perl/bin/perl.exe -w
+#! /usr/bin/perl
 ########################################################################
 # NOTES:
 #
@@ -11,14 +11,19 @@
 # 20020718	Need to do checking on UNIX side to verify that the windows 
 # specific patches caused no harm.
 # 20020804	Full paths on source cause recursive directory creation. May need reproduce tree switch.
-#
+# 20170604	Find a way to detirmine OS instead of using the variables
+# 20170604	Files with leading dashes, spaces, and dollar-signs fail to move
+# 20170604	Same file checks didn't work, and caused deletion.
+
+
 use strict;
+use File::Spec;
 use Cwd;
 
 my $DEBUG = 0;
 my $VERSION ="2.1";
 
-my $OS_TYPE = "WINDOWS";
+my $OS_TYPE = "UNIX";
 my $NOTUNIX = 0;
 
 my $DIRSEP = '/';
@@ -37,6 +42,7 @@ elsif ($OS_TYPE =~ /WINDOWS/)
 }
 
 my $USE_MD5 = 1;
+my $USE_SHA1 = 1;
 my $OVER_FLAG = 0;
 my $FORCE_FLAG = 0;
 my $VERBOSE_FLAG = 0;
@@ -50,6 +56,11 @@ print "$OS_TYPE Version\n" if ($VERBOSE_FLAG || $DEBUG);
 if ($USE_MD5)
 {
 	use Digest::MD5;
+}
+
+if ($USE_SHA1)
+{
+	use Digest::SHA;
 }
 ########################################################################
 
@@ -68,25 +79,37 @@ sub USAGE
 
 sub CKSUM
 {
-	my ($checksum, $md5);
+	my ($checksum, $md5,$sha1);
 	my $SUMFILE = $_[0];
 	print "Opening $SUMFILE for checksum\n" if $DEBUG;
 	open(FILEIN, $SUMFILE) || die("Couldn't open $SUMFILE for checksum calculation");
 
-	if ($USE_MD5)
+	if ($USE_SHA1)
 	{
-		$md5 = Digest::MD5->new;
+		$sha1 = Digest::SHA->new(1);
 		while (<FILEIN>)
 		{
-			$md5->add($_);
+			$sha1->add($_);
 		}
-		$checksum = $md5->hexdigest;
+		$checksum = $sha1->hexdigest;
 	}
 	else
 	{
-		# Standard SysV Checksum
-		undef $/;
-		$checksum = unpack("%32C*",<FILEIN>);
+		if ($USE_MD5)
+		{
+			$md5 = Digest::MD5->new;
+			while (<FILEIN>)
+			{	
+				$md5->add($_);
+			}
+			$checksum = $md5->hexdigest;
+		}
+		else
+		{
+			# Standard SysV Checksum
+			undef $/;
+			$checksum = unpack("%32C*",<FILEIN>);
+		}
 	}
 	close(FILEIN);
 	return ($checksum);
@@ -238,19 +261,18 @@ sub CREATE_PATH
 	for ($i=$count ; $i > 0; $i--)
 	{
 		$dirname = $filename;
-	
 
 		$dirname =~ s/(.*)($DIRSEP[^$DIRSEP]*){$i,$i}/$1/;
 		print "$i: $dirname\n" if $DEBUG;
-		if (mkdir($dirname))
+		if (-d $dirname) 
 		{
-			print "MKDIR $dirname suceeded\n" if $DEBUG;
-		}
+			# Skipping
+		} 
 		else
 		{
-			if (-d $dirname)
+			if (mkdir($dirname))
 			{
-				# Well, it's there!
+				print "MKDIR $dirname suceeded\n" if $DEBUG;
 			}
 			else
 			{
@@ -372,10 +394,10 @@ while ($FLAGTEST = shift(@ARGV))
 }
 
 $MULTITEST = @FILES;
-print "MULTITEST: $MULTITEST\n";
+print "MULTITEST: $MULTITEST\n" if ($DEBUG);
 if (($MULTITEST > 2) && !(-d $DESTINATION))
 {
-	print "When moving multiple files the last arument must be a directory.\n\n";
+	print "When moving multiple files the last argument must be a directory.\n\n";
 	&USAGE;
 }
 if ($MULTITEST < 1 )
@@ -441,13 +463,12 @@ while (@FILES)
 	}
 	else
 	{
-		CREATE_PATH($DESTFILE);	
-	
+
 		if (-f $DESTFILE)
 		{
 			my $CURRFILE_SUM = CKSUM($CURRFILE);
 			my $DESTFILE_SUM = CKSUM($DESTFILE);
-			print "CFileSUM: $CURRFILE_SUM, DFileSUM: $DESTFILE_SUM\n" if ($DEBUG);
+			print "Current File SUM: $CURRFILE_SUM, Destination File SUM: $DESTFILE_SUM\n" if ($VERBOSE_FLAG || $DEBUG);
 			if ($FORCE_FLAG)
 			{
 				print "$CURRFILE ->> $DESTFILE\n" if ($VERBOSE_FLAG || $DEBUG);
