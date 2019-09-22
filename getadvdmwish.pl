@@ -134,6 +134,7 @@ if (!(defined($pass)))
         my $result;
             if ($post)
             {
+#                $ua->ssl_opts( SSL_hostname => 'www.adultdvdmarketplace.com' );
                 $response = $ua->post($url, $post);
             }
             else
@@ -141,8 +142,8 @@ if (!(defined($pass)))
                 $response = $ua->get($url);
             }
 
-#my $d = Data::Dumper->new([$response]);
-#print $d->Dump;
+my $d = Data::Dumper->new([$response]);
+print $d->Dump;
             #UnclePetros 03/07/2011:
             #code to handle correctly 301 and 302 response messages
             if($response->code == '301' || $response->code == '302'){
@@ -487,7 +488,7 @@ $main->{iterTotal}=undef;
 $main->{iterCurrent}=1;
 
 # Authentication
-$main->load("$baseURI/xcart/adult_dvd/login.php", ['mode' => 'login', 'adult_dvd_id' => '', 'usertype' => 'C', 'username' => $user, 'password' => $pass, 'redirect' => "$baseURI/xcart/adult_dvd/alerts.php"]);
+$main->load("$baseURI/xcart/adult_dvd/login.php", ['mode' => 'login', 'adult_dvd_id' => '', 'usertype' => 'C', 'username' => $user, 'password' => $pass, 'redirect' => 'adult_dvd']);
 
 # Inital Load
 $main->load("$baseURI/xcart/adult_dvd/alerts.php?order_by=title&seller_login=&page=1");
