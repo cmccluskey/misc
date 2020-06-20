@@ -272,6 +272,8 @@ if args.reset:
       if entry[3] is not None:
         if "OOP" in entry[3]:
           oop_found = True
+      else: 
+         entry[3] = "???"
       # Change in place the value of entry
       listings[idx] = entry
       if old_entry != entry:

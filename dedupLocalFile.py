@@ -82,7 +82,8 @@ for item in args.items:
   re_Id = re.compile(r'\.Id_[0-9]+\.')
   done = False
   while not done and not deleted:
-    if re_Id.match(item):
+    if re_Id.search(item):
+#      print("Here")
       if args.debug:
         print("In: re_Id")
       itemtest = re_Id.sub('.', item)
@@ -91,10 +92,10 @@ for item in args.items:
         done = True
       else:
         item_sum = cksum(itemtest)
+        if args.debug:
+          print("New Item: %s" % itemtest )
+          print("New Item: %s" % item_sum )
         if original_sum == item_sum:
-          if args.debug:
-            print("New Item: %s" % itemtest )
-            print("New Item: %s" % item_sum )
           print("Will remove %s" % original)
           os.remove(original)
           done = True
@@ -163,7 +164,7 @@ for item in args.items:
   re_CopyEnd = re.compile(r'\scopy\.', flags=re.IGNORECASE)
   done = False
   while not done and not deleted:
-    if re_Id.match(item):
+    if re.match(r'\.Id_[0-9]+\.', item):
       if args.debug:
         print("In: re_CopyEnd")
       itemtest = re_CopyEnd.sub('.', item)

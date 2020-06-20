@@ -80,8 +80,8 @@ log.debug("Opening master file %s", args.masterfile)
 master=None
 masterField=None
 try:
-#  fromMaster = open(args.masterfile, 'r', encoding='utf-8-sig')
-  fromMaster = open(args.masterfile, 'rt', encoding=get_encoding(args.masterfile))
+  fromMaster = open(args.masterfile, 'r', encoding='utf-8-sig')
+#  fromMaster = open(args.masterfile, 'rt', encoding=get_encoding(args.masterfile))
   master = csv.DictReader(fromMaster)
   masterField = get_title_field(master)
   log.debug("Master field is: %s", masterField)
@@ -104,8 +104,8 @@ for masterRow in master:
   slave=None
   slaveField=None
   try:
-#    fromSlave = open(args.slavefile, 'r', encoding='utf-8-sig')
-    fromSlave = open(args.slavefile, 'rt', encoding=get_encoding(args.slavefile))
+    fromSlave = open(args.slavefile, 'r', encoding='utf-8-sig')
+#    fromSlave = open(args.slavefile, 'rt', encoding=get_encoding(args.slavefile))
     slave = csv.DictReader(fromSlave)
     slaveField = get_title_field(slave)
     log.debug("Slave field is: %s", slaveField)
