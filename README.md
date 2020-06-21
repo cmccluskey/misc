@@ -13,11 +13,11 @@ This procedure is what is used to create the dictionary/database:
 
 3. Run normalizefileinfo.py - Build an extension dictionary with all observed Magic Descriptions (and their reference counts) normally extensions.py 
 
-4. Unless the filesystems scanned are 100% correct, you will need to alter the extension dictionary to eliminiate bad "extension -> Magic Description" associations. In some cases a file may have multiple correct entries (ex: a bash shell script on disk may have a .bash instance in one case, but a .sh instance in another). I found that http://www.cleancss.com/python-beautify/ and http://pep8online.com was helpful in locating the enevitable errors in Python syntax come after manual editing.
+4. Unless the filesystems scanned are 100% correct, you will need to alter the extension dictionary to eliminiate bad "extension -> Magic Description" associations. In some cases a file may have multiple correct entries (ex: a bash shell script on disk may have a .bash instance in one case, but a .sh instance in another). I found http://www.cleancss.com/python-beautify/ and http://pep8online.com was helpful in locating the enevitable errors in Python syntax come after manual editing.
 
 5. Move this dictionary file to dicts/extension.dict
 
-6. The dictionary above contains a "suffix -> Magic Description" but for all pracical puposes, the entry point for logic will be based on the Magic Desciption. createrevfileinfo.py file reverses this map (flipping the relationship in extensions.dict from suffix -> Magic Description to Magic Description -> suffix). createrevfileinfo.py then overlays some additional "file dispensation" data in the defaultext.dict -- namely the default suffix reccomended be used for the type of file (a DEFAULT key), and a never suggest or rewrite files of this type with a specific suffix (an EXCLUDE key). createrevfileinfo.py requires two main files to build out the final dictionary -- extensions.dict and default.dict -- and produces a final revextension.dict file. 
+6. The dictionary above contains a "suffix -> Magic Description" but for all pracical puposes, the entry point for logic will be based on the Magic Desciption. The script createrevfileinfo.py reverses this map (flipping the relationship in extensions.dict from suffix -> Magic Description to Magic Description -> suffix). createrevfileinfo.py then overlays some additional "file dispensation" data in the defaultext.dict -- namely the default suffix reccomended be used for the type of file (a DEFAULT key), and a 'never suggest or rewrite files of this type with a specific suffix' modifier (an EXCLUDE key). createrevfileinfo.py requires two main files to build out the final dictionary -- extensions.dict and default.dict -- and produces a final revextension.dict file. 
 
 7. The construction of extensions.dict is described above. The inital defaultext.dict file can be created by running createrevfilefinfo on the current extensions file, but this generates a defaultext.dict file that may be to active it what it tries to do. Manually ditng this file is reccomended. 
 7a. Remove any entries that you never want to move/modify.
@@ -42,9 +42,3 @@ validatefileinfo.py
  -s subdirectory (assuming relative to the files location unless an absolute path is given)
 
 
-
-Other files and directories:
-
-dicts - Directories of python dictionaries common to various scripts.
-README.md - This document
-magicfixup.py - A subroutine to regex around some poorly formatted Magic Descriptions

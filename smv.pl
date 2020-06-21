@@ -1,3 +1,4 @@
+# This file is old, and was replaced by smv.py
 <<<<<<< HEAD
 #! /usr/bin/perl
 ########################################################################
