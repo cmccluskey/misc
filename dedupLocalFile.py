@@ -1,5 +1,13 @@
 #!/opt/local/bin/python3
 
+#TODO
+#Add aggressive checking of serial items
+#Use Trash folder 
+#Add trial mode to preview destructive changesb
+#Use a form loop pattern to allow for multiple pattern matches
+#Pick a serial pattern for non-duplicate files what would hash to an exising name
+
+
 # Starts with:
 # 'Copy of '
 # 'Copy (NN) of '
