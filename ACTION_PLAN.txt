@@ -1,0 +1,12 @@
+Look for copy patterns +, Copy of, Copy (n) of,
+Make suffixs correct
+- Be sure don't touch filters are working (.001, .r001, .vsp, .z01)
+- Remove trailing +
+- Fix other suffixes
+Remove clear junk files in RAID14/*.txt
+Check images and move to bad folder
+Check for personal data using .txt in BigJump
+Do Checksums
+Check multis and move to bad folder
+Do Checksums on thumbnails
+
