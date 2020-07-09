@@ -31,16 +31,7 @@ def build_file_tree(items=[], recurse=False):
   return sorted(temp_dict.keys())
 
 
-#def mkdir_p(path):
-#  try:
-#    os.makedirs(path)
-#  except OSError as exc: 
-#    if exc.errno == errno.EEXIST and os.path.isdir(path):
-#      pass
-#    else:
-#      raise
-
-
+# Local
 def cksum(filename):
   BLOCKSIZE = 65536
   hasher = hashlib.sha1()
@@ -56,10 +47,10 @@ def cksum(filename):
 
 
 # Globals
+seriallength = 4
 
 # Parser setup
 parser = argparse.ArgumentParser(description='Looks for various files from copy processes and remove/rewrite the filename based on the results.')
-
 parser.add_argument('-a', dest='aggressive', action='store_true', default=False, help='For items that can have an incremented value, search for duplicates before move/delete.')
 parser.add_argument('-noffend', dest='unixoffend', action='store_false', default=True, help='Remove typically offending Unix shell characters.')
 parser.add_argument('-R', dest='recurse', action='store_true', default=False, help='Recurse into directories.')
@@ -68,7 +59,6 @@ parser.add_argument('-r', dest='report', action='store_true', default=False, hel
 parser.add_argument('-nlog', dest='actionlog', action='store_const', const=None, default='action.log', help='Disable action log generation.')
 parser.add_argument('-ntrash', dest='trash', action='store_const', const=None, default='.Trash',  help='Disable use of Trash folder.')
 parser.add_argument('items', nargs='+', default=None)
-
 args = parser.parse_args()
 
 
@@ -94,57 +84,100 @@ if args.actionlog:
 
 files = build_file_tree(args.items, args.recurse)
 
-print(files)
 
 
 #TODO
 #Add aggressive checking of serial items
 #Use Trash folder 
-#Add trial mode to preview destructive changesb
+#Add trial mode to preview destructive changes
 #Use a form loop pattern to allow for multiple pattern matches
 #Pick a serial pattern for non-duplicate files what would hash to an exising name
 
+# 1. Do removal filters                             # 
+#   A. Filename or suffix contains:                 #
+#     Unix offending character sets [`,@,&,;,%,!,]  #
+#   B. Filename starts with:                        #
+#     'Copy of '                                    #
+#     '+'                                           #
+#   C. Filename Ends with:                          #
+#     ' copy'                                       #
+#     '+'                                           #
+#   D. Suffix Ends with:                            #
+#     '+'                                           #
+#   E. Filename starts with:                        #
+#     'Copy (NN) of '                               #
+#     'Copy (NN)'                                   #
+#   F. Filename contains:                           #
+#     '.Id_NN'                                      #
+#   G. Ends with on the filename:                   #
+#     ' copy N'                                     #
+#     '-(NNNNN)'                                    #
+#     ' (NN)'                                       #
+#     '(NN)'                                        #
+#     'copy[0-9,a-z,A-Z]'                           #
+#     'copyNN'                                      #
+#   H. Suffix contains:                             #
+#     '.Id_NN'                                      #
+# 2. Do sequential checks                           #
+#   A. '-(NNNN)'                                    #
+# 3. Postfixes                                      #
+#   A. Space at the end of the filename             #
+#   B. Space at the end of the suffix               #
+#   C. Double dots                                  #
 
-# Starts with:
-# 'Copy of '
-# 'Copy (NN) of '
+# RE Filters
+re_bad = re.compile('\`|\~|\@|\&|\;|\%|\!')
+re_startcopyof = re.compile('^Copy\s*of\s*', re.IGNORECASE)
+re_startplus = re.compile('^\++')
+re_endcopy = re.compile('\s*copy$', re.IGNORECASE)
+re_endcopyx
+re_endcopynum
+re_endplus = re.compile('\+*$')
+re_startcopyparen
+re_startcopyparenof
+re_Id
+re_enddashparens
+re_endparens
 
-# Contains:
-# .Id_NN 
-
-# Ends with on the filename:
-# ' copy' 
-# ' copy N'
-# -(NNNNN)
-# ' (NN)'
-# (NN)   
-# copy[0-9,a-z,A-Z]
-# copyNN
-# +
-
-# Ends with at the end of the suffix:
-# +
-
-# Unix offending character sets [`,@,&,;,%,!,]
 
 checksum_cache = {}
 
 for item in files:
-  print(item)
+#  print(item)
   original = item
-  (newfile, newsuffix) = os.path.splitext(os.path.basename(item))
-  newbasedir = os.path.dirname(item)
+  filename = None
+  suffix = None
+  (filename, suffix) = os.path.splitext(os.path.basename(item))
+  basedir = os.path.dirname(item)
   checksum_cache[original] = cksum(original)
   if args.debug:
     logger.debug("Original: %s" % original)
     logger.debug("Original Sum: %s" % checksum_cache[original])
-    logger.debug("New File: %s" % newfile )
-    logger.debug("New Suffix: %s" % newsuffix)
-    logger.debug("New Base Dir: %s" % newbasedir)
-  deleted = False
+    logger.debug("Original File: %s" % filename )
+    logger.debug("Original Suffix: %s" % suffix)
+    logger.debug("Original Base Dir: %s" % basedir)
 
-#  if not args.noffend:
-    
+  if args.unixoffend:
+    re_bad.sub('', filename)
+    logger.debug("New File: %s" % filename)
+    re_bad.sub('', suffix)
+    logger.debug("New Suffix: %s" % suffix)
+
+  re_startcopyof.sub('', filename)
+  logger.debug("New File: %s" % filename)
+
+  re_startplus.sub('', filename)
+  logger.debug("New File: %s" % filename)
+
+  re_endcopy.sub('', filename)
+  logger.debug("New File: %s" % filename)
+
+  re_endplus.sub('', filename)
+  logger.debug("New File: %s" % filename)
+
+  re_endplus.sub('', suffix)
+  logger.debug("New Suffix: %s" % suffix)
+
 #
 #  # .Id_NN 
 #  re_Id = re.compile(r'\.Id_[0-9]+\.')
