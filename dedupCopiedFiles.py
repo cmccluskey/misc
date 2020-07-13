@@ -32,16 +32,19 @@
 #   B. Space at the beginning / end of the suffix   #
 #   C. Double dots                                  #
 
+
 import argparse
-import errno
+#import errno
 import hashlib
 import logging
 import os
-import pprint
+#import pprint
 import re
 import shutil 
 import sys
+import time
 from fuzzywuzzy import fuzz
+
 
 # Move to commmon
 def build_file_tree(items=[], recurse=False):
@@ -63,11 +66,67 @@ def build_file_tree(items=[], recurse=False):
   return sorted(temp_dict.keys())
 
 
-def delete_file(filname, trash_folder, actionfile):
-  None
+def delete_file(filename, trash_folder = None, actionfile = None):
+  if trash_folder:
+    basedir = os.path.dirname(filename)
+    trash_folder_pathed = os.path.join(basedir, trash_folder)
+    if os.path.isdir(trash_folder_pathed):
+      if not os.access(trash_folder_pathed, os.W_OK):
+        logger.error("Cannot write to trash folder %s" % trash_folder_pathed)
+        sys.exit(1)
+    else:
+      try:
+        os.mkdirs(trash_folder_pathed, exist_ok=True)
+      except:
+        logger.error("Cannot create trash folder %s" % trash_folder_pathed)
+        sys.exit(1)
+      # Action statement
+      actionfile.write("\n")
+      actionfile.write("Date: %s\n" % str(time.time()) )
+      actionfile.write("Action: CreateDir\n")
+      actionfile.write("Object: %s\n" % trash_folder_pathed)
+    existing_file = os.path.join(trash_folder_pathed, os.path.basename(filename))
+    if os.path.isfile(existing_file):
+      logger.error("Would overwrite exsiting file in Trash folder. Please remove content in Trash folder.")
+      sys.exit(1)  
+    try:
+      shutil.move(filename,trash_folder_pathed)
+    except:
+      logger.error("Cannot move file %s to trash folder %s" % (filename, trash_folder_pathed))
+      sys.exit(1)
+    actionfile.write("\n")
+    actionfile.write("Date: %s\n" % str(time.time()) )
+    actionfile.write("Action: MoveFile\n")
+    actionfile.write("Object: %s\n" % filename)
+    actionfile.write("Destination: %s\n" % existing_file)
+  else:
+    try:
+      os.remove(filename)
+    except:
+      logger.error("Cannot remove file %s" % filename) 
+      sys.exit(1)
+    actionfile.write("\n")
+    actionfile.write("Date: %s\n" % str(time.time()) )
+    actionfile.write("Action: DeleteFile\n")
+    actionfile.write("Object: %s\n" % filename)
+       
 
-def move_file(fromfile, tofile, actionfile)
-  None
+def move_file(fromfile, tofile, actionfile):
+  if os.path.isfile(tofile):
+    logger.error("Move of %s would overwrite exsiting file %s." % (fromfile, tofile))
+    sys.exit(1)
+  else:
+    try:
+      shutil.move(fromfile,tofile)
+    except:
+      logger.error("Cannot move file %s to file %s" % (fromfile, tofile)) 
+      sys.exit(1)
+    actionfile.write("\n")
+    actionfile.write("Date: %s\n" % str(time.time()) )
+    actionfile.write("Action: MoveFile\n")
+    actionfile.write("Object: %s\n" % fromfile)
+    actionfile.write("Destination: %s\n" % tofile)
+
 
 # Local
 def cksum(filename):
@@ -86,6 +145,7 @@ def cksum(filename):
 
 # Globals
 seriallength = 4
+
 
 # Parser setup
 parser = argparse.ArgumentParser(description='Looks for various files from copy processes and remove/rewrite the filename based on the results.')
@@ -123,12 +183,8 @@ if args.actionlog:
 
 files = build_file_tree(args.items, args.recurse)
 
-
 #TODO
-#Use Trash folder 
 #Add trial mode to preview destructive changes
-#Pick a serial pattern for non-duplicate files what would hash to an exising name
-
 
 # RE Filters
 re_bad = re.compile('\`|\~|\@|\&|\;|\%|\!')
@@ -148,16 +204,17 @@ re_enddashparens = re.compile('\s*-\(\d+\)$')
 re_doubledot = re.compile('\.+')
 re_startwithspace = re.compile('^\s+')
 re_endswithspace = re.compile('\s+$')
-
+re_startdot = re.compile('^\.{1,1}')
 
 checksum_cache = {}
 
 for item in files:
-#  print(item)
   original = item
   filename = None
   suffix = None
   (filename, suffix) = os.path.splitext(os.path.basename(item))
+  if suffix:
+    suffix = re_startdot.sub('', suffix)
   originalsuffix = suffix
   basedir = os.path.dirname(item)
   checksum_cache[original] = cksum(original)
@@ -170,54 +227,52 @@ for item in files:
 
 # 1A Remove Unix offending character sets
   if args.unixoffend:
-    re_bad.sub('', filename)
+    filename = re_bad.sub('', filename)
     logger.debug("New File: %s" % filename)
-    re_bad.sub('', suffix)
+    suffix = re_bad.sub('', suffix)
     logger.debug("New Suffix: %s" % suffix)
 
 # 1B Filename starts with
-  re_startcopyof.sub('', filename)
+  filename = re_startcopyof.sub('', filename)
   logger.debug("New File: %s" % filename)
 
-  re_startplus.sub('', filename)
+  filename = re_startplus.sub('', filename)
   logger.debug("New File: %s" % filename)
 
 # 1C Filename ends with
-  re_endcopy.sub('', filename)
+  filename = re_endcopy.sub('', filename)
   logger.debug("New File: %s" % filename)
 
-  re_endplus.sub('', filename)
+  filename = re_endplus.sub('', filename)
   logger.debug("New File: %s" % filename)
 
 # 1D Suffix ends with
-  re_endplus.sub('', suffix)
+  suffix = re_endplus.sub('', suffix)
   logger.debug("New Suffix: %s" % suffix)
 
 # 1E Filename starts with
-  re_startcopyparenof.sub('', filename)
+  filename = re_startcopyparenof.sub('', filename)
   logger.debug("New File: %s" % filename)
-  re_startcopyparen.sub('', filename)
+  filename = re_startcopyparen.sub('', filename)
   logger.debug("New File: %s" % filename)
 
 # 1F Filename contains
-  re_Id.sub('', filename)
+  filename = re_Id.sub('', filename)
   logger.debug("New File: %s" % filename)
 
 # 1G Filename ends with
-  re_endcopynum.sub('', filename)
+  filename = re_endcopynum.sub('', filename)
   logger.debug("New File: %s" % filename)
-  re_enddashparens.sub('', filename)
+  filename = re_enddashparens.sub('', filename)
   logger.debug("New File: %s" % filename)
-  re_endparens.sub('', filename)
+  filename = re_endparens.sub('', filename)
   logger.debug("New File: %s" % filename)
-  re_endcopyx.sub('', filename)
+  filename = re_endcopyx.sub('', filename)
   logger.debug("New File: %s" % filename)
 
 # 1H Suffix contains
-  re_Id.sub('', filename)
+  filename = re_Id.sub('', filename)
   logger.debug("New File: %s" % filename)
-#  .sub('', filename)
-#  logger.debug("New File: %s" % filename)
 
 # 2A Do sequential checks
 # Note: In theory we should have folded the file down to its concise, non-copied form. Check the filename against other files in the same directory. 
@@ -244,21 +299,21 @@ for item in files:
             localratio = int(fuzz.ratio(filename, localfilename))
             logger.debug("Localfile fuzzy ratio: %s" % str(localratio))
             logger.debug("Original fuzzy ratio: %s" % str(originalratio))
-            if (originalratio > localratio)
+            if (originalratio > localratio):
               if args.report:
-                print("Do report statement for deleting the local file")
+                print("Altername file %s will be deleted due to hashing match with %s" % (localfile, original))
               else:
                 delete_file(localfile, args.trash, af)
                 checksum_cache.pop(localfile)
             else:
               deleted = True
               if args.report:
-                print("Do report statement for deleteing the orignal file")
+                print("File %s will be deleted due to hasing match with %s" % (original, localfile))
               else:
                 delete_file(originalfile, args.trash, af)
-                checksum_cache.pop.(original)
-  if not deleted:
+                checksum_cache.pop(original)
 
+  if not deleted:
 # 3 Postfixes -- not going to do any of these now, as I hope the logic above isn't so sloppy to need them
 # 3A Space at the begin/end of the filename
 #re_startwithspace = re.compile('^\s+')
@@ -272,7 +327,8 @@ for item in files:
 # 4 Final move or reporting
     # Combine file to pull path
     if suffix:
-      newfile = os.path.join(basedir, filename, suffix)
+      recombinedfile = filename + '.' + suffix
+      newfile = os.path.join(basedir, recombinedfile)
     else:
       newfile = os.path.join(basedir, filename)
     # Find an avaialble, sequential slot (delete if necessary)
@@ -281,26 +337,27 @@ for item in files:
     else:
       if not os.path.isfile(newfile):
         if args.report:
-          print("Do report statement for simple move")
+          print("File %s will be moved from %s" % (newfile, original))
         else:
           move_file(original, newname, af)
           checksum_cache[newname] = checksum_cache[original]
           checksum_cache.pop(original)
       else:
         # Would like to make this modular for but now we will use -(NNNN) as the sequence
-        for counter in (range(10000):
+        for counter in range(10000):
           if counter == 9999:
             logger.info("Counter overflow. This shouldn't happen")
             sys.exit(1)
           postscript = '-(' + format(counter, '04') + ')'
           testfilename = filename + postscript
           if suffix:
-            newfile = os.path.join(basedir, testfilename, suffix)
+            testrecombinedfile = filename + '.' + suffix
+            newfile = os.path.join(basedir, testrecombinedfile)
           else:
             newfile = os.path.join(basedir, testfilename)
           if not os.path.isfile(newfile):
             if args.report:
-              print("Do report for move on intecremented file")
+              print("Intecremented file %s will be moved from %s" % (newfile, original))
             else:
               move_file(original, newname, af)
               checksum_cache[newname] = checksum_cache[original]
@@ -317,7 +374,7 @@ for item in files:
               logger.debug("Original checksum: %s" % checksum_cache[original])
               if (checksum_cache[newfile] == checksum_cache[original]): # Same checksum so one has to go
                 if args.report:
-                  print("Do report statement for deleting the original file")
+                  print("File %s will be deleted due to hash map match on another file %s" % (original, newfile))
                 else:
                   delete_file(original, args.trash, af)
                   checksum_cache.pop(original)

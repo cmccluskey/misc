@@ -19,6 +19,7 @@ if [ -e  /etc/network/interfaces ]; then
   git config --global user.email "mcclusk@gmail.com"
   git config --global user.name "Chris McCluskey"
   sudo pip3 install python-magic
+  sudo pip3 install fuzzywuzzy
 
 ###################
 # Redhat/Centos
