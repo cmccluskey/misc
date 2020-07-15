@@ -34,11 +34,9 @@
 
 
 import argparse
-#import errno
 import hashlib
 import logging
 import os
-#import pprint
 import re
 import shutil 
 import sys
@@ -155,7 +153,7 @@ parser.add_argument('-R', dest='recurse', action='store_true', default=False, he
 parser.add_argument('-d', dest='debug', action='store_true', default=False, help='Enable debugging to standard out.')
 parser.add_argument('-r', dest='report', action='store_true', default=False, help='Report only, do not touch files.')
 parser.add_argument('-nlog', dest='actionlog', action='store_const', const=None, default='action.log', help='Disable action log generation.')
-parser.add_argument('-ntrash', dest='trash', action='store_const', const=None, default='.Trash',  help='Disable use of Trash folder.')
+parser.add_argument('-ntrash', dest='trash', action='store_const', const=None, default='__Trash',  help='Disable use of Trash folder.')
 parser.add_argument('items', nargs='+', default=None)
 args = parser.parse_args()
 
@@ -183,28 +181,36 @@ if args.actionlog:
 
 files = build_file_tree(args.items, args.recurse)
 
-#TODO
-#Add trial mode to preview destructive changes
-
 # RE Filters
 re_bad = re.compile('\`|\~|\@|\&|\;|\%|\!')
-re_startcopyof = re.compile('^Copy\s*of\s*', re.IGNORECASE)
+re_startcopyof = re.compile('^Copy\s?of\s?', re.IGNORECASE)
 re_startplus = re.compile('^\++')
-re_startcopyparen = re.compile('^Copy\s*\(\d+\)\s*', re.IGNORECASE)
-re_startcopyparenof = re.compile('^Copy\s*\(\d+\)\s*of\s*', re.IGNORECASE)
+re_startcopyparen = re.compile('^Copy\s?\(\d+\)\s?', re.IGNORECASE)
+re_startcopyparenof = re.compile('^Copy\s?\(\d+\)\s?of\s?', re.IGNORECASE)
+re_startdollar = re.compile('^\$+')
 re_endcopy = re.compile('\s*copy$', re.IGNORECASE)
-re_endcopyx = re.compile('\s*copy\s*\w{1,2}$', re.IGNORECASE)
-re_endcopynum = re.compile('\s*copy\s*\d*$', re.IGNORECASE)
+re_endcopyx = re.compile('\s*copy\s?\w{1,2}$', re.IGNORECASE)
+re_endcopynum = re.compile('\s*copy\s?\d?$', re.IGNORECASE)
 re_endplus = re.compile('\+*$')
-re_endparens = re.compile('\s*\(\d+\)$')
-re_Id = re.compile('\.*Id\d+$')
+re_endparens = re.compile('\s?\(\d+\)$')
+re_endbrackets = re.compile('\s?\[\d+\]$')
+re_enddollar = re.compile('\$+$')
+re_Id = re.compile('\.?Id_\d+$')
 
 # Special use cases
-re_enddashparens = re.compile('\s*-\(\d+\)$')
+re_enddashparens = re.compile('\s?-\(\d+\)$')
 re_doubledot = re.compile('\.+')
 re_startwithspace = re.compile('^\s+')
 re_endswithspace = re.compile('\s+$')
 re_startdot = re.compile('^\.{1,1}')
+
+# Exclude cases for ++
+re_containsc = re.compile('c\+\+', re.IGNORECASE)
+re_containsg = re.compile('g\+\+', re.IGNORECASE)
+re_containsmagick = re.compile('magick\+\+', re.IGNORECASE)
+re_containsmotif = re.compile('motif\+\+', re.IGNORECASE)
+re_containsbonnie = re.compile('bonnie\+\+', re.IGNORECASE)
+
 
 checksum_cache = {}
 
@@ -233,17 +239,25 @@ for item in files:
     logger.debug("New Suffix: %s" % suffix)
 
 # 1B Filename starts with
-  filename = re_startcopyof.sub('', filename)
-  logger.debug("New File: %s" % filename)
-
   filename = re_startplus.sub('', filename)
   logger.debug("New File: %s" % filename)
 
-# 1C Filename ends with
-  filename = re_endcopy.sub('', filename)
+  filename = re_startdollar.sub('', filename)
   logger.debug("New File: %s" % filename)
 
-  filename = re_endplus.sub('', filename)
+  filename = re_startcopyof.sub('', filename)
+  logger.debug("New File: %s" % filename)
+
+# 1C Filename ends with
+  if not (re_containsc.search(filename) or re_containsg.search(filename) or re_containsmagick.search(filename) or
+          re_containsmotif.search(filename) or re_containsbonnie.search(filename)):
+    filename = re_endplus.sub('', filename)
+    logger.debug("New File: %s" % filename)
+
+  filename = re_enddollar.sub('', filename)
+  logger.debug("New File: %s" % filename)
+
+  filename = re_endcopy.sub('', filename)
   logger.debug("New File: %s" % filename)
 
 # 1D Suffix ends with
@@ -267,12 +281,14 @@ for item in files:
   logger.debug("New File: %s" % filename)
   filename = re_endparens.sub('', filename)
   logger.debug("New File: %s" % filename)
+  filename = re_endbrackets.sub('', filename)
+  logger.debug("New File: %s" % filename)
   filename = re_endcopyx.sub('', filename)
   logger.debug("New File: %s" % filename)
 
 # 1H Suffix contains
-  filename = re_Id.sub('', filename)
-  logger.debug("New File: %s" % filename)
+  suffix = re_Id.sub('', suffix)
+  logger.debug("New Suffix: %s" % suffix)
 
 # 2A Do sequential checks
 # Note: In theory we should have folded the file down to its concise, non-copied form. Check the filename against other files in the same directory. 
@@ -301,14 +317,14 @@ for item in files:
             logger.debug("Original fuzzy ratio: %s" % str(originalratio))
             if (originalratio > localratio):
               if args.report:
-                print("Altername file %s will be deleted due to hashing match with %s" % (localfile, original))
+                print("Altername file %s will be deleted due to hashing match with %s (aggressive)" % (localfile, original))
               else:
                 delete_file(localfile, args.trash, af)
                 checksum_cache.pop(localfile)
             else:
               deleted = True
               if args.report:
-                print("File %s will be deleted due to hasing match with %s" % (original, localfile))
+                print("File %s will be deleted due to hashing match with %s (aggressive)" % (original, localfile))
               else:
                 delete_file(originalfile, args.trash, af)
                 checksum_cache.pop(original)
@@ -343,30 +359,48 @@ for item in files:
           checksum_cache[newname] = checksum_cache[original]
           checksum_cache.pop(original)
       else:
-        # Would like to make this modular for but now we will use -(NNNN) as the sequence
-        for counter in range(10000):
-          if counter == 9999:
-            logger.info("Counter overflow. This shouldn't happen")
-            sys.exit(1)
-          postscript = '-(' + format(counter, '04') + ')'
-          testfilename = filename + postscript
-          if suffix:
-            testrecombinedfile = filename + '.' + suffix
-            newfile = os.path.join(basedir, testrecombinedfile)
+        # Before we loop finding a new postscript, make sure and existing file on disk isn't the same
+        if os.path.samefile(original, newfile):
+          logger.info("We shouldn't have got to this point in the final move, the original file shouldn't have gone into the loop branch")
+          sys.exit(1)
+        if not newfile in checksum_cache.keys():
+          checksum_cache[newfile] = cksum(newfile)
+        # Did we find something that needs to be deleted
+        logger.debug("Newfile (existing) checksum: %s" % checksum_cache[newfile])
+        logger.debug("Original checksum: %s" % checksum_cache[original])
+        if (checksum_cache[newfile] == checksum_cache[original]): # Same checksum so one has to go
+          if args.report:
+            print("File %s will be deleted due to hash map match on another file %s" % (original, newfile))
           else:
-            newfile = os.path.join(basedir, testfilename)
-          if not os.path.isfile(newfile):
-            if args.report:
-              print("Intecremented file %s will be moved from %s" % (newfile, original))
-            else:
-              move_file(original, newname, af)
-              checksum_cache[newname] = checksum_cache[original]
-              checksum_cache.pop(original)
-            break
-          else:
-            if os.path.samefile(original, newfile):
-              logger.info("We shouldn't have got to this point in the final move, the original file shouldn't have gone into the loop")
+            delete_file(original, args.trash, af)
+            checksum_cache.pop(original)
+        else:
+          # Would like to make this modular for but now we will use -(NNNN) as the sequence
+          for counter in range(10000):
+            if counter == 9999:
+              logger.info("Counter overflow. This shouldn't happen")
               sys.exit(1)
+            postscript = '-(' + format(counter, '04') + ')'
+            testfilename = filename + postscript
+            if suffix:
+              testrecombinedfile = testfilename + '.' + suffix
+              newfile = os.path.join(basedir, testrecombinedfile)
+              logger.debug("In counter loop with %s for %s" % (str(counter), newfile))
+            else:
+              newfile = os.path.join(basedir, testfilename)
+              logger.debug("In counter loop with %s for %s" % (str(counter), newfile))
+            if not os.path.isfile(newfile):
+              if args.report:
+                print("Intecremented file %s will be moved from %s" % (newfile, original))
+              else:
+                move_file(original, newname, af)
+                checksum_cache[newname] = checksum_cache[original]
+                checksum_cache.pop(original)
+              break
+            else:
+              if os.path.samefile(original, newfile):
+                logger.info("We shouldn't have got to this point in the final move, the original file shouldn't have gone into the loop")
+                sys.exit(1)
               if not newfile in checksum_cache.keys():
                 checksum_cache[newfile] = cksum(newfile)
               # Did we find something that needs to be deleted
