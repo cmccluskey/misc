@@ -1,5 +1,4 @@
-#!/opt/local/bin/python3
-#sys.path.append("/usr/local/lib/python2.7/site-packages")
+#!/usr/bin/python3
 import argparse
 import errno
 import hashlib
@@ -30,6 +29,73 @@ def cksum(filename):
     return None
   return hasher.hexdigest()
 
+# Move to commmon
+def delete_file(filename, trash_folder = None, actionfile = None):
+  if trash_folder:
+    basedir = os.path.dirname(filename)
+    trash_folder_pathed = os.path.join(basedir, trash_folder)
+    if os.path.isdir(trash_folder_pathed):
+      if not os.access(trash_folder_pathed, os.W_OK):
+        logger.error("Cannot write to trash folder %s" % trash_folder_pathed)
+        sys.exit(1)
+    else:
+      try:
+        os.makedirs(trash_folder_pathed, exist_ok=True)
+      except:
+        logger.error("Cannot create trash folder %s" % trash_folder_pathed)
+        sys.exit(1)
+      # Action statement
+      if actionfile:
+        actionfile.write("\n")
+        actionfile.write("Date: %s\n" % str(time.time()) )
+        actionfile.write("Action: CreateDir\n")
+        actionfile.write("Object: %s\n" % trash_folder_pathed)
+    existing_file = os.path.join(trash_folder_pathed, os.path.basename(filename))
+    if os.path.isfile(existing_file):
+      logger.error("Would overwrite exsiting file in Trash folder. Please remove content in Trash folder.")
+      sys.exit(1)  
+    try:
+      shutil.move(filename,trash_folder_pathed)
+    except:
+      logger.error("Cannot move file %s to trash folder %s" % (filename, trash_folder_pathed))
+      sys.exit(1)
+    if actionfile:
+      actionfile.write("\n")
+      actionfile.write("Date: %s\n" % str(time.time()) )
+      actionfile.write("Action: MoveFile\n")
+      actionfile.write("Object: %s\n" % filename)
+      actionfile.write("Destination: %s\n" % existing_file)
+  else:
+    try:
+      os.remove(filename)
+    except:
+      logger.error("Cannot remove file %s" % filename) 
+      sys.exit(1)
+    if actionfile:
+      actionfile.write("\n")
+      actionfile.write("Date: %s\n" % str(time.time()) )
+      actionfile.write("Action: DeleteFile\n")
+      actionfile.write("Object: %s\n" % filename)
+       
+# Move to commmon
+def move_file(fromfile, tofile, actionfile):
+  if os.path.isfile(tofile):
+    logger.error("Move of %s would overwrite existing file %s." % (fromfile, tofile))
+    sys.exit(1)
+  else:
+    try:
+      shutil.move(fromfile,tofile)
+    except:
+      logger.error("Cannot move file %s to file %s" % (fromfile, tofile)) 
+      sys.exit(1)
+    if actionfile:
+      actionfile.write("\n")
+      actionfile.write("Date: %s\n" % str(time.time()) )
+      actionfile.write("Action: MoveFile\n")
+      actionfile.write("Object: %s\n" % fromfile)
+      actionfile.write("Destination: %s\n" % tofile)
+
+
 # Globals
 sourcelist = []
 
@@ -38,9 +104,10 @@ parser = argparse.ArgumentParser(description='Move files that only match the nam
 
 parser.add_argument('-d', dest='debug', action='store_true', default=False, help='Enable debugging to standard out.')
 parser.add_argument('-o', dest='opposite', action='store_true', default=False, help='If the file is the same, remove the DEST version of the file.') 
-parser.add_argument('-r', dest='recurse', action='store_true', default=False, help='Recurse into matching directories.')
+parser.add_argument('-R', dest='recurse', action='store_true', default=False, help='Recurse into matching directories.')
 parser.add_argument('-v', dest='verbose', action='store_true', default=False, help='Verbose reporting.')
 parser.add_argument('-t', dest='test', action='store_true', default=False, help='Test and display the intended operation, but do not actually perform the operations on disk.')
+parser.add_argument('-ntrash', dest='trash', action='store_const', const=None, default='__Trash',  help='Disable use of Trash folder.')
 parser.add_argument('items', nargs='+', default=None)
 
 # True out arg parser
@@ -115,7 +182,10 @@ for sourcefile in sourcelist:
             if args.verbose or args.debug: print("%s --X %s" % (sourcefile,destfile))
             if not args.test:
               try:
-                os.remove(destfile)
+                if args.trash:
+                  delete_file(destfile, args.trash)
+                else:
+                  os.remove(destfile)
               except:
                 print("Warning: Could not remove destination file %s." % destfile)
           else:
@@ -123,7 +193,10 @@ for sourcefile in sourcelist:
             if args.verbose or args.debug: print("%s X-- %s" % (sourcefile,destfile))
             if not args.test:
               try:
-                os.remove(sourcefile)
+                if args.trash:
+                  delete_file(sourcefile, args.trash)
+                else:
+                  os.remove(sourcefile)
               except:
                 print("Warning: Could not remove source file %s." % sourcefile)
         else:
@@ -142,6 +215,8 @@ for sourcefile in sourcelist:
         if args.verbose or args.debug: print("%s --> %s" % (sourcefile,destfile))
         if not args.test:
           try:
+            if args.trash:
+              delete_file(destfile, args.trash)
             shutil.move(sourcefile, destfile)
           except:
             print("Warning: Unable to move %s to %s." % (sourcefile,destfile))
