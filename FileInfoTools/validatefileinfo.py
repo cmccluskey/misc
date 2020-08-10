@@ -1,8 +1,6 @@
 #!/usr/bin/python3
-#sys.path.append("/usr/local/lib/python2.7/site-packages")
 # brew install libmagic
 # via pip install python-magic
-# export PYTHONPATH=/usr/local/lib/python2.7/site-packages
 import argparse
 import magic
 import os
@@ -15,11 +13,11 @@ from magicfixup import magicfixup
 # Counters
 countTotal      = 0 # Scanned plus all no-scan cases
 countScanned    = 0 # Scanned cases total (see below)
-countNoAccess   = 0 # Unscanned
+#countNoAccess   = 0 # Unscanned
 noAccess        = []
 countSkipped    = 0 # Unscanned
 #countExcluded   = 0 # Unscanned
-countSymLink    = 0 # No real file
+#countSymLink    = 0 # No real file
 symlink         = []
 socket          = []
 
@@ -27,11 +25,11 @@ socket          = []
 countCorrect    = 0 # All is good
 countCase       = 0 # Extension case was messed up
 countVariant    = 0 # Proper variant of extension
-countIncorrect  = 0 # Invalid extension noted
+#countIncorrect  = 0 # Invalid extension noted
 incorrect       = []
-countMissingExt = 0 # No extension
+#countMissingExt = 0 # No extension
 missingExt      = []
-countMissingDesc= 0 # No description entry
+#countMissingDesc= 0 # No description entry
 missingDesc     = [] 
 
 # Timers
@@ -67,7 +65,118 @@ def build_file_tree(items=[], recurse=False):
   return sorted(temp_dict.keys())
 
 
-# Ok to process based on exlude list
+# Move to commmon
+def delete_file(filename, trash_folder = None, actionfile = None, logger = None, fatal_error = True):
+  if logger:
+    logger.debug("In delete_file")
+  if os.path.isfile(filename): 
+    if trash_folder:
+      basedir = os.path.dirname(filename)
+      trash_folder_pathed = os.path.join(basedir, trash_folder)
+      if os.path.isdir(trash_folder_pathed):
+        if not os.access(trash_folder_pathed, os.W_OK):
+          if logger:
+            logger.error("Cannot write to trash folder %s" % trash_folder_pathed)
+          else:
+            print("Error: Cannot write to trash folder %s" % trash_folder_pathed)
+          if fatal_error:
+            sys.exit(1)
+      else:
+        try:
+          os.makedirs(trash_folder_pathed, exist_ok=True)
+        except OSError as exc: 
+          if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+          else:
+            if logger:
+              logger.error("Cannot create trash folder %s" % trash_folder_pathed)
+            else:
+              print("Error: Cannot create trash folder %s" % trash_folder_pathed)
+            if fatal_error: 
+              sys.exit(1)
+        # Action statement
+        if actionfile:
+          actionfile.write("\n")
+          actionfile.write("Date: %s\n" % str(time.time()) )
+          actionfile.write("Action: CreateDir\n")
+          actionfile.write("Object: %s\n" % trash_folder_pathed)
+      existing_file = os.path.join(trash_folder_pathed, os.path.basename(filename))
+      if os.path.isfile(existing_file):
+        if logger:
+          logger.error("Would overwrite exsiting file in Trash folder. Please remove content in Trash folder.")
+        else:
+          print("Error: Would overwrite exsiting file in Trash folder. Please remove content in Trash folder.")
+        if fatal_error: 
+          sys.exit(1)
+      try:
+        shutil.move(filename,trash_folder_pathed)
+      except:
+        if logger:
+          logger.error("Cannot move file %s to trash folder %s" % (filename, trash_folder_pathed))
+        else:
+          print("Error: Cannot move file %s to trash folder %s" % (filename, trash_folder_pathed))
+        if fatal_error: 
+          sys.exit(1)
+      if actionfile:
+        actionfile.write("\n")
+        actionfile.write("Date: %s\n" % str(time.time()) )
+        actionfile.write("Action: MoveFile\n")
+        actionfile.write("Object: %s\n" % filename)
+        actionfile.write("Destination: %s\n" % existing_file)
+    else:
+      try:
+        os.remove(filename)
+      except:
+        if logger:
+          logger.error("Cannot remove file %s" % filename) 
+        else:
+          print("Error: Cannot remove file %s" % filename)
+        if fatal_error: 
+          sys.exit(1)
+      if actionfile:
+        actionfile.write("\n")
+        actionfile.write("Date: %s\n" % str(time.time()) )
+        actionfile.write("Action: DeleteFile\n")
+        actionfile.write("Object: %s\n" % filename)
+  else:
+    if logger:
+      logger.error("File %s went away before we could delete" % filename)
+    else:
+      print("Error: File %s went away before we could delete" % filename)
+    if fatal_error: 
+      sys.exit(1)
+       
+# Move to commmon
+def move_file(fromfile, tofile, actionfile = None, logger = None, fatal_error=True):
+  if logger:
+    logger.debug("In move_file")
+  if os.path.isfile(tofile):
+    if logger:
+      logger.error("Move of %s would overwrite existing file %s." % (fromfile, tofile))
+    else:
+      print("Error: Move of %s would overwrite existing file %s." % (fromfile, tofile))
+    if fatal_error: 
+      sys.exit(1)
+  else:
+    try:
+      shutil.move(fromfile,tofile)
+    except Exception as e:
+      print(str(e))
+      if logger:
+        logger.error("Cannot move file %s to file %s" % (fromfile, tofile)) 
+      else:
+        print("Error: Cannot move file %s to file %s" % (fromfile, tofile))
+      if fatal_error: 
+        sys.exit(1)
+    if actionfile:
+      actionfile.write("\n")
+      actionfile.write("Date: %s\n" % str(time.time()) )
+      actionfile.write("Action: MoveFile\n")
+      actionfile.write("Object: %s\n" % fromfile)
+      actionfile.write("Destination: %s\n" % tofile)
+
+
+# Ok to process based on exclude list
 def excludeRootCheckPassed(checkfile, myList):
   checkfile = os.path.dirname(checkfile)
   for x in myList:
@@ -81,7 +190,7 @@ def excludeRootCheckPassed(checkfile, myList):
 def excludeDirCheckPassed(checkfile, myList):
   checkfile = os.path.dirname(checkfile)
   for x in myList:
-          regex = re.escape(x)
+    regex = re.escape(x)
     if re.search(regex,checkfile):
       return False
     else: None
@@ -101,15 +210,14 @@ def changeCase(filename, extension, case, extdict):
       strippedext = extension
   else: None
   returnfile = path + '/' + strippedfile + '.' + strippedext
-  if (args.debug): print "changeCase: returnfile: %s" % returnfile
+  if (args.debug): print("changeCase: returnfile: %s" % returnfile)
   return (returnfile)
 
 
 def changeExt(filename, extension, case, extdict = {}):
   (path, strippedfile, strippedext) = fileParts(filename)
   filename = path + '/' + strippedfile + '.' + extension
-#  filename = changeCase(filename, extension, case, extdict)
-  if (args.debug): print "changeExt: filename: %s" % filename
+  if (args.debug): print("changeExt: filename: %s" % filename)
   return filename
 
 
@@ -118,14 +226,14 @@ def changeMovePath(filename, path):
   (tpath, tfile, textension) = fileParts(filename)
   if not excludeRootCheckPassed(movedir_clean, ['/']):
     movedir_clean = os.path.abspath(movedir_clean)
-    if (args.debug): print "Absolute move path found."
+    if (args.debug): print("Absolute move path found.")
     if textension:
       return movedir_clean + '/' + tfile + '.' + textension
     else:
       return movedir_clean + '/' + tfile
   else:
     movedir_clean = os.path.basename(movedir_clean)
-    if (args.debug): print "Relative move path found."
+    if (args.debug): print("Relative move path found.")
     if textension:
       return tpath + '/' + movedir_clean + '/' + tfile + '.' + textension
     else:
@@ -147,7 +255,7 @@ def fileParts(filename):
   else:
     base = fileproper
     extension = ''
-  if (args.debug): print "fileParts: %s %s %s" % (path, base, extension)
+  if (args.debug): print("fileParts: %s %s %s" % (path, base, extension))
   return [path, base, extension]
 
 
@@ -157,19 +265,23 @@ parser = argparse.ArgumentParser(description='Validate files extensions based on
 parser.add_argument('-d', dest='debug', action='store_true', default=False, help='Enable debugging to standard out')
 parser.add_argument('-e', dest='revextdict', default='./dicts/revextension.dict', help='Override the location of the extension dictionary') 
 parser.add_argument('-C', dest='case', default='lower', nargs=1, choices=['upper','lower','asis'], help='Specify case (default lower).')
-parser.add_argument('-A', dest='addextension', action='store_true', default=False, help='Add an extension if a default extension is available. If in report mode, log if DEFAULT is not found.')
-parser.add_argument('-D', dest='forcedest', action='store_true', default=False, help='Force the use of the default extension, even if the current extension is valid.') 
+parser.add_argument('-A', dest='addext', action='store_true', default=False, help='Add an extension if a default extension is available. If in report mode, log if DEFAULT is not found.')
+parser.add_argument('-D', dest='forcedefext', action='store_true', default=False, help='Force the use of the default extension, even if the current extension is valid.') 
 parser.add_argument('-S', dest='summary', action='store_true', default=False, help='Display the stats summary at the end of the run. If a report is requested, the stats will be written to the end of the report.') 
-parser.add_argument('-r', dest='reportfile', default=False, help='Enable a report, and store the report at this location. If run without other operation, only the report of what would be done will be written.')
+parser.add_argument('-r', dest='reportfile', default=False, help='Same as testonly, store the report at this location.')
 parser.add_argument('-t', dest='testonly', default=False, help='Do not perform any modification to files, but print what would have been done.')
 parser.add_argument('-v', dest='verbose', action='store_true', default=False, help='Normally skipped, unavailable, and ok files are not written to the report, this enables those entries in the report.') 
-
 parser.add_argument('-c', dest='caserun', action='store_true', default=None, help='Change the case only after validation.')
 parser.add_argument('-m', dest='moverun', default=None, help='Move the file if it does not match the dictionary. Specify a subdirectory relative to the current filename in which to move the file, or a full path to move to a fixed location.')
 parser.add_argument('-n', dest='renamerun', action='store_true', default=None, help='Perform a rename run, modifying the suffix.')
+parser.add_argument('-R', dest='recurse', action='store_true', default=False, help='Recurse into directories.')
+parser.add_argument('-nlog', dest='actionlog', action='store_const', const=None, default='action.log', help='Disable action log generation.')
+parser.add_argument('-ntrash', dest='trash', action='store_const', const=None, default='__Trash',  help='Disable use of Trash folder.')
+parser.add_argument('-nfatal', dest='fatal', action='store_const', const=False, default=True,  help='Make file errors a non-fatal issue (not-recomended).')
 parser.add_argument('items', nargs='+', default=None)
 
 args = parser.parse_args()
+
 
 ## Enable logger
 #logging.basicConfig()
@@ -182,22 +294,22 @@ args = parser.parse_args()
 ##   logging.getLogger(lh).setLevel(100)
 
 # Make sure one of the primary validation modes is set
-if not (args.reportfile or args.caserun or args.moverun or args.renamerun):
+if not (args.caserun or args.moverun or args.renamerun):
   parser.print_help()
   print("Error: One of the runtime modes must be to run a report (-r), change the case (-c), move nonconforming files to a directory (-m), to rename in place (-n).")
   sys.exit(1)
 
 # Make sure that there isn't more than one validation mode set
-if ( (args.caserun and args.moverun and args.renamerun) or 
-     (args.caserun and args.renamerun) or (args.caserun and args.moverun) or 
-     (args.moverun and args.renamerun) ):
-  parser.print_help()
-  print("Error: The runtime mode must be only one of changing the case (-c), move nonconforming files to a directory (-m), to rename in place (-n).")
-  sys.exit(1)
+#if ( (args.caserun and args.moverun and args.renamerun) or 
+#     (args.caserun and args.renamerun) or (args.caserun and args.moverun) or 
+#     (args.moverun and args.renamerun) ):
+#  parser.print_help()
+#  print("Error: The runtime mode must be only one of changing the case (-c), move nonconforming files to a directory (-m), to rename in place (-n).")
+#  sys.exit(1)
 
 # Make sure we have a report file name
 if args.reportfile:
-  if not isinstance(args.reportfile, str)
+  if not isinstance(args.reportfile, str):
     parser.print_help()
     print("Error: A report was requested but a filename wasn't provided.")
     sys.exit(1)
@@ -256,14 +368,12 @@ else:
   inf.close()
 
 # Build file list via path recursion
-files = build_file_tree(args.items, True)
+files = build_file_tree(args.items, args.recurse)
 
 # Walk the tree and write out line
-for file in files:
+for testfile in files:
   countTotal += 1
-  # File under test
-  testfile =  os.path.join(root, file)
-  if (args.debug): print "Processing %s ..." % testfile
+  if (args.debug): print("Processing %s ..." % testfile)
   # Placeholder for changes
   modifiedfile = ''
   # Flag for case rewrite
@@ -285,7 +395,7 @@ for file in files:
     if (args.verbose): 
       writeLog(active_log_handles, "%s skipped as a symlink." % (testfile))
     elif (args.debug): 
-      print "%s skipped as a symlink." % (testfile)
+      print("%s skipped as a symlink." % (testfile))
     break
   else:
     # Readable as the current user
@@ -297,10 +407,10 @@ for file in files:
       if (args.verbose): 
         writeLog(active_log_handles, "%s skipped due to access permissions." % (testfile))
       elif (args.debug): 
-        print "%s skipped due to access permissions." % (testfile)
+        print("%s skipped due to access permissions." % (testfile))
       break
     else:
-      fp.close()
+      if fp: fp.close()
       # Checking to see if file is a socket
       mode = os.stat(testfile).st_mode
       if stat.S_ISSOCK(mode):
@@ -309,17 +419,17 @@ for file in files:
         if (args.verbose): 
           writeLog(active_log_handles, "%s skipped as a named socket/pipe." % (testfile))
         elif (args.debug): 
-          print "%s skipped as a named socket/pipe." % (testfile)
+          print("%s skipped as a named socket/pipe." % (testfile))
         break
       else:
         # We are going to Scan this file now
         countScanned += 1
-  # Let's scan this file
-  if (args.debug): print "Testfile: %s" % testfile
+  # Finally, let's scan this file
+  if (args.debug): print("Testfile: %s" % testfile)
   extension = fileParts(testfile)[2]
-  if (args.debug): print "Extension: %s" % extension
+  if (args.debug): print("Extension: %s" % extension)
   description = magicfixup(magic.from_file(testfile), False)
-  if (description in revextension):
+  if (description in revextension.keys()):
     # Confirm there is an extension on the file
     if extension:
       # Note a case fault. If we aren't rewriting case, revert the "destination" file back to the original.
@@ -332,18 +442,18 @@ for file in files:
           casechange = True                      
         else: None 
       else: None
-      # Check extension vis description
+      # Check extension via description
       if ('DEFAULT' in revextension[description].keys()):
         if (extension.lower() == revextension[description]['DEFAULT'][0].lower()):
           # Yes, the extension is correct for the description 
           if (args.verbose): writeLog(active_log_handles, "%s has the correct extension '%s' for '%s'." % (testfile,extension,description))
-          elif (args.debug): print "%s has the correct extension '%s' for '%s'." % (testfile,extension,description)
+          elif (args.debug): print("%s has the correct extension '%s' for '%s'." % (testfile,extension,description))
           countCorrect += 1
         else:
           if ('EXCLUDE' in revextension[description].keys()):
             if extension.lower() in revextension[description]['EXCLUDE']:
               if (args.verbose): writeLog(active_log_handles, "%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description))
-              elif (args.debug): print "%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description)
+              elif (args.debug): print("%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description))
               countVariant += 1
             else:
               writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
@@ -364,13 +474,13 @@ for file in files:
           if extension.lower() in revextension[description]['EXCLUDE']:
             # In the exclude list, so don't change the file
             if (args.verbose): writeLog(active_log_handles, "%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description))
-            elif (args.debug): print "%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description)
+            elif (args.debug): print("%s has a known extension '%s' for '%s' but is excluded from changes." % (testfile,extension,description))
           else: None
           countVariant += 1
-         else:
+        else:
           # Is there a DEFAULT?
           if ('DEFAULT' in revextension[description].keys()):
-            if args.forcedest:
+            if args.forcedefext:
               writeLog(active_log_handles, "%s has a known extension '%s' for '%s' but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
               modifychange = True
               movechange = True
@@ -378,19 +488,19 @@ for file in files:
               countVariant += 1
             else:
               if (args.verbose): writeLog(active_log_handles, "%s has a known extension '%s' for '%s'." % (testfile,extension,description))
-              elif (args.debug): print "%s has a known extension '%s' for '%s'." % (testfile,extension,description)
+              elif (args.debug): print("%s has a known extension '%s' for '%s'." % (testfile,extension,description))
               countVariant += 1  
           else:
           # There isn't a default, so do nothing
             if (args.verbose): writeLog(active_log_handles, "%s has a known extension '%s' for '%s' and the extension won't be changed." % (testfile,extension,description))
-            elif (args.debug): print "%s has a known extension '%s' for '%s' and the extension won't be changed." % (testfile,extension,description)
+            elif (args.debug): print("%s has a known extension '%s' for '%s' and the extension won't be changed." % (testfile,extension,description))
             countVariant += 1
       else:
         # Assuming incorrect extension for description
         countIncorrect += 1
         # Is there an alternate extenstion available?
         if ('DEFAULT' in revextension[description].keys()):
-          if args.forcedest:
+          if args.forcedefext:
             writeLog(active_log_handles, "%s has an incorrect extension '%s' for description '%s', but will be changed to the default '%s'." % (testfile,extension,description,revextension[description]['DEFAULT'][0]))
             modifychange = True
             movechange = True
@@ -403,30 +513,28 @@ for file in files:
           movechange = True
     else:
       countMissingExt += 1
-      if args.addextension:
+      if args.addext:
         if ('DEFAULT' in revextension[description].keys()):
-          if (args.addextension):
+          if (args.addext):
             writeLog(active_log_handles, "%s has no extension, but has a default of '%s' for '%s'." % (testfile,revextension[description]['DEFAULT'][0],description))
             modifychange = True
             extensionchange = revextension[description]['DEFAULT'][0]
           else:
             if (args.verbose): writeLog(active_log_handles, "%s has no extension for '%s', and the default will not be applied." % (testfile,description))
-            elif (args.debug): print "%s has no extension for '%s', and the default will not be applied." % (testfile,description)    
+            elif (args.debug): print("%s has no extension for '%s', and the default will not be applied." % (testfile,description))    
         else:
           if (args.verbose): writeLog(active_log_handles, "%s has no extension for '%s', and no default is available." % (testfile,description))
-          elif (args.debug): print "%s has no extension for '%s', and no default is available." % (testfile,description)
+          elif (args.debug): print("%s has no extension for '%s', and no default is available." % (testfile,description))
           movechange = True
-     else:
+      else:
         if (args.verbose): writeLog(active_log_handles, "%s has no extension for '%s', and no default is available." % (testfile,description))
-        elif (args.debug): print "%s has no extension for '%s', and no default is available." % (testfile,description)
+        elif (args.debug): print("%s has no extension for '%s', and no default is available." % (testfile,description))
         movechage = True
     # Now perform the run modes
-    # Allowing previous mods, otherwise reset modified
-    if (modifiedfile == ''): 
+    if not modifiedfile: 
       modifiedfile = testfile
     if args.verbose: writeLog(active_log_handles, "args.renamerun: %s args.caserun: %s args.moverun: %s modifychange: %s casechange: %s movechange: %s" % (args.renamerun, args.caserun, args.moverun, modifychange, casechange, movechange))
-    elif args.debug: print "args.renamerun: %s args.caserun: %s args.moverun: %s modifychange: %s casechange: %s movechange: %s" % (args.renamerun, args.caserun, args.moverun, modifychange, casechange, movechange)
-
+    elif args.debug: print("args.renamerun: %s args.caserun: %s args.moverun: %s modifychange: %s casechange: %s movechange: %s" % (args.renamerun, args.caserun, args.moverun, modifychange, casechange, movechange))
     # Move/rename the file to modfied file name 
     if args.renamerun:
       if modifychange:
@@ -438,15 +546,16 @@ for file in files:
     # Change the path of the errored file to a global path OR to local (realtive to file) subdirectory
     if args.moverun:
       if args.verbose: writeLog(active_log_handles, "Debug: In moverun case...")
-      elif args.debug: print "Debug: In moverun case..."
+      elif args.debug: print("Debug: In moverun case...")
       if movechange:
         if (args.verbose): writeLog(active_log_handles, "Debug: Perform movechange modifcation.")
-        elif (args.debug): print "Debug: Perform movechange modifcation."
+        elif (args.debug): print("Debug: Perform movechange modifcation.")
         modifiedfile = changeMovePath(modifiedfile, args.moverun)
     if (args.renamerun or args.caserun or args.moverun):
-      if (args.verbose): writeLog(active_log_handles, "Comparing '%s' and '%s'." % (testfile,modifiedfile)
-
-      elif (args.debug): print "Comparing '%s' and '%s'." % (testfile,modifiedfile)
+      if (args.verbose): 
+        writeLog(active_log_handles, "Comparing '%s' and '%s'." % (testfile,modifiedfile))
+      elif (args.debug): 
+        print("Comparing '%s' and '%s'." % (testfile,modifiedfile))
       if (testfile != modifiedfile):
         # Make sure the directory exists, if not create it
         if not os.path.exists(fileParts(modifiedfile)[0]):
@@ -460,15 +569,17 @@ for file in files:
             None
         if not os.path.isfile(modifiedfile):
           writeLog(active_log_handles, "Moving %s to %s... " % (testfile,modifiedfile))
-          try:
-            os.rename(testfile,modifiedfile)
-          #  None
-          except OSError:
-            writeLog(active_log_handles, "FAILED")
-            writeLog(active_log_handles, "Cannot move %s to %s." % (testfile,modifiedfile))
-            sys.exit(1)
-          else:
-            writeLog(active_log_handles, "OK")  
+          move_file(testfile,modifiedfile)
+#          try:
+#            move_file(testfile,modifiedfile)
+#            os.rename(testfile,modifiedfile)
+#          #  None
+#          except OSError:
+#            writeLog(active_log_handles, "FAILED")
+#            writeLog(active_log_handles, "Cannot move %s to %s." % (testfile,modifiedfile))
+#            sys.exit(1)
+#        else:
+          writeLog(active_log_handles, "OK")  
         else:
           writeLog(active_log_handles, "Error: Won't clobber existing file %s." % (modifiedfile))
           sys.exit(1) 
@@ -476,23 +587,24 @@ for file in files:
         if (modifychange or casechange or movechange):
           if (args.verbose):
             writeLog(active_log_handles, "File %s has no changes." % (testfile))
-          elif (args.debug): print "File %s has no changes." % (testfile)
+          elif (args.debug): 
+            print("File %s has no changes." % (testfile))
           else: None
-           print "Error: There is no difference in the source file %s or its destination. This shouldn't happen!" % testfile
-           sys.exit(1)
+#            print("Error: There is no difference in the source file %s or its destination. This shouldn't happen!" % testfile)
+#            sys.exit(1)
         else:
           if (args.verbose):
             writeLog(active_log_handles, "File %s has no changes." % (testfile))
-          elif (args.debug): print "File %s has no changes." % (testfile)
+          elif (args.debug): print("File %s has no changes." % (testfile))
           else: None
     else:
       if (args.verbose): writeLog(active_log_handles, "No modification of %s required." % (testfile))
-      elif (args.debug): print "No modification of %s required." % (testfile)
+      elif (args.debug): print("No modification of %s required." % (testfile))
   else:
     # There is no description found in revextensions
     countMissingDesc += 1
     if (args.verbose): writeLog(active_log_handles, "%s doesn't have a valid description '%s' in the revextension dict." % (testfile,description))
-    elif (args.debug): print "%s doesn't have a valid description '%s' in the revextension dict." % (testfile,description)
+    elif (args.debug): print("%s doesn't have a valid description '%s' in the revextension dict." % (testfile,description))
 
 
 # Do stats calculation
@@ -507,7 +619,7 @@ if args.reportfile:
   try:
     reportf = open(os.path.abspath(args.reportfile), 'w')
   except IOError:
-    print "Error: Cannot open reportfile %s for writing." % (args.reportfile)
+    print("Error: Cannot open reportfile %s for writing." % (args.reportfile))
     sys.exit(1)
   else: None
 else: None
