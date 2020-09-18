@@ -108,7 +108,8 @@ parser.add_argument('-R', dest='recurse', action='store_true', default=False, he
 parser.add_argument('-v', dest='verbose', action='store_true', default=False, help='Verbose reporting.')
 parser.add_argument('-t', dest='test', action='store_true', default=False, help='Test and display the intended operation, but do not actually perform the operations on disk.')
 parser.add_argument('-ntrash', dest='trash', action='store_const', const=None, default='__Trash',  help='Disable use of Trash folder.')
-parser.add_argument('items', nargs='+', default=None)
+parser.add_argument('items', nargs=argparse.REMAINDER)
+
 
 # True out arg parser
 args = parser.parse_args()
@@ -117,7 +118,7 @@ args = parser.parse_args()
 if len(args.items) < 2:
   print("Error: One or more source arguments and one destination argument are required")
   sys.exit(1)
-args.dest = args.items.pop()
+args.dest = os.path.abspath(args.items.pop())
 
 # If there a muliple source arguments then the dest needs to be an existing directory
 if len(args.items) > 1:
@@ -132,7 +133,7 @@ for item in args.items:
       print("Warning: One or more source items were drectories, and recursion was not set. The directory and its contents will not be included.")
       break
   elif not os.path.isfile(item):
-    print("Error: Source item %s not found", item)
+    print("Error: Source item %s not found" % item)
     sys.exit(1)
 
 # Walk the tree as required
@@ -194,9 +195,9 @@ for sourcefile in sourcelist:
             if not args.test:
               try:
                 if args.trash:
-                  delete_file(sourcefile, args.trash)
+                  delete_file(os.path.abspath(sourcefile), args.trash)
                 else:
-                  os.remove(sourcefile)
+                  os.remove(os.path.abspath(sourcefile))
               except:
                 print("Warning: Could not remove source file %s." % sourcefile)
         else:
@@ -214,28 +215,7 @@ for sourcefile in sourcelist:
         # Move file
         if args.verbose or args.debug: print("%s --> %s" % (sourcefile,destfile))
         if not args.test:
-          try:
-            if args.trash:
-              delete_file(destfile, args.trash)
-            shutil.move(sourcefile, destfile)
-          except:
-            print("Warning: Unable to move %s to %s." % (sourcefile,destfile))
+          move_file(os.path.abspath(sourcefile), os.path.abspath(destfile), None)
 
 print("DONE.")
 
-
-#					($filename eq '.') ||
-#					($filename eq '..') ||
-#					(-l $long_filename) ||
-#					# End of UNIX system exceptions
-#					($filename eq 'proc') ||
-#					($filename eq '.AppleDesktop') ||
-#					($filename eq '.AppleDouble') || 
-#					($filename eq '.finderinfo') || 
-#					($filename eq '.resource') || 
-#					($filename eq '.xvpics') ||
-#					# End of UNIX userspace exceptions
-#					($filename =~ /recycled/i) || 
-#					# End of Win userspace exceptions
-#                                       ($filename eq '.DS_Store')
-#                                       # End of OSX userspace exceptions

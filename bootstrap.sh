@@ -2,12 +2,12 @@
 
 # Debian/Ubuntu
 if [ -e  /etc/network/interfaces ]; then
-  sudo echo 'America/Los_Angeles' > /etc/timezone
+  sudo /bin/bash -c "echo 'America/Los_Angeles' > /etc/timezone"
   sudo dpkg-reconfigure --frontend noninteractive tzdata
   sudo apt-get install -y bcmwl-kernel-source
   sudo cp bootstrap/nm/* /etc/NetworkManager/system-connections/
-  sudo nmcli connection reload
-  sleep 10
+  sudo service network-manager restart 
+  sleep 30 
   sudo apt-add-repository multiverse
   sudo apt-get update
   echo 'ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true' | sudo debconf-set-selections

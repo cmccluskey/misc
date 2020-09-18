@@ -279,8 +279,8 @@ for item in files:
   if args.verbose:
     print("%s/%s: %s" % (str(current_count), str(len(files)), item))
   if not os.path.isfile(item):
-    logger.info("Skipping file %s since it was presumeably deleted or can't be read" % item)
-    break
+    logger.warning("Skipping file %s since it was presumeably deleted or can't be read" % item)
+    pass
   original = item
   filename = None
   suffix = None
