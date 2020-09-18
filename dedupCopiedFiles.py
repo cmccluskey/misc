@@ -75,7 +75,7 @@ def build_file_tree(items=[], recurse=False):
   return sorted(temp_dict.keys())
 
 # Move to commmon
-def delete_file(filename, trash_folder = None, actionfile = None, logger = None):
+def delete_file(filename, trash_folder = None, actionfile = None, logger = None, fatal_error = True):
   if logger:
     logger.debug("In delete_file")
   if os.path.isfile(filename): 
@@ -88,7 +88,8 @@ def delete_file(filename, trash_folder = None, actionfile = None, logger = None)
             logger.error("Cannot write to trash folder %s" % trash_folder_pathed)
           else:
             print("Error: Cannot write to trash folder %s" % trash_folder_pathed)
-          sys.exit(1)
+          if fatal_error:
+            sys.exit(1)
       else:
         try:
           os.makedirs(trash_folder_pathed, exist_ok=True)
@@ -100,7 +101,8 @@ def delete_file(filename, trash_folder = None, actionfile = None, logger = None)
               logger.error("Cannot create trash folder %s" % trash_folder_pathed)
             else:
               print("Error: Cannot create trash folder %s" % trash_folder_pathed)
-            sys.exit(1)
+            if fatal_error: 
+              sys.exit(1)
         # Action statement
         if actionfile:
           actionfile.write("\n")
@@ -113,7 +115,8 @@ def delete_file(filename, trash_folder = None, actionfile = None, logger = None)
           logger.error("Would overwrite exsiting file in Trash folder. Please remove content in Trash folder.")
         else:
           print("Error: Would overwrite exsiting file in Trash folder. Please remove content in Trash folder.")
-        sys.exit(1)  
+        if fatal_error: 
+          sys.exit(1)
       try:
         shutil.move(filename,trash_folder_pathed)
       except:
@@ -121,7 +124,8 @@ def delete_file(filename, trash_folder = None, actionfile = None, logger = None)
           logger.error("Cannot move file %s to trash folder %s" % (filename, trash_folder_pathed))
         else:
           print("Error: Cannot move file %s to trash folder %s" % (filename, trash_folder_pathed))
-        sys.exit(1)
+        if fatal_error: 
+          sys.exit(1)
       if actionfile:
         actionfile.write("\n")
         actionfile.write("Date: %s\n" % str(time.time()) )
@@ -136,7 +140,8 @@ def delete_file(filename, trash_folder = None, actionfile = None, logger = None)
           logger.error("Cannot remove file %s" % filename) 
         else:
           print("Error: Cannot remove file %s" % filename)
-        sys.exit(1)
+        if fatal_error: 
+          sys.exit(1)
       if actionfile:
         actionfile.write("\n")
         actionfile.write("Date: %s\n" % str(time.time()) )
@@ -147,9 +152,11 @@ def delete_file(filename, trash_folder = None, actionfile = None, logger = None)
       logger.error("File %s went away before we could delete" % filename)
     else:
       print("Error: File %s went away before we could delete" % filename)
+    if fatal_error: 
+      sys.exit(1)
        
 # Move to commmon
-def move_file(fromfile, tofile, actionfile = None, logger = None):
+def move_file(fromfile, tofile, actionfile = None, logger = None, fatal_error=True):
   if logger:
     logger.debug("In move_file")
   if os.path.isfile(tofile):
@@ -157,7 +164,8 @@ def move_file(fromfile, tofile, actionfile = None, logger = None):
       logger.error("Move of %s would overwrite existing file %s." % (fromfile, tofile))
     else:
       print("Error: Move of %s would overwrite existing file %s." % (fromfile, tofile))
-    sys.exit(1)
+    if fatal_error: 
+      sys.exit(1)
   else:
     try:
       shutil.move(fromfile,tofile)
@@ -167,7 +175,8 @@ def move_file(fromfile, tofile, actionfile = None, logger = None):
         logger.error("Cannot move file %s to file %s" % (fromfile, tofile)) 
       else:
         print("Error: Cannot move file %s to file %s" % (fromfile, tofile))
-      sys.exit(1)
+      if fatal_error: 
+        sys.exit(1)
     if actionfile:
       actionfile.write("\n")
       actionfile.write("Date: %s\n" % str(time.time()) )
@@ -205,6 +214,7 @@ parser.add_argument('-t', dest='report', action='store_true', default=False, hel
 parser.add_argument('-v', dest='verbose', action='store_true', default=False, help='Verbose status.')
 parser.add_argument('-nlog', dest='actionlog', action='store_const', const=None, default='action.log', help='Disable action log generation.')
 parser.add_argument('-ntrash', dest='trash', action='store_const', const=None, default='__Trash',  help='Disable use of Trash folder.')
+parser.add_argument('-nfatal', dest='fatal', action='store_const', const=False, default=True,  help='Make file errors a non-fatal issue (not-recomended).')
 parser.add_argument('items', nargs='+', default=None)
 args = parser.parse_args()
 
@@ -420,17 +430,15 @@ for item in files:
                 if args.report:
                   print("Alternate file %s will be deleted due to hashing match with %s (aggressive)" % (localfile, original))
                 else:
-                  delete_file(localfile, args.trash, af)
-#                  checksum_cache.pop(localfile)
-                  del checksum_cache[localfile]
+                  delete_file(localfile, args.trash, af, fatal_error=args.fatal)
+                  checksum_cache.pop(localfile)
                 continue
               else:
                 if args.report:
                   print("Duplicate file %s will be deleted due to hashing match with %s (aggressive)" % (original, localfile))
                 else:
-                  delete_file(original, args.trash, af)
-#                  checksum_cache.pop(original)
-                  del checksum_cache[original]
+                  delete_file(original, args.trash, af, fatal_error=args.fatal)
+                  checksum_cache.pop(original)
                 continue
               deleted = True
 
@@ -460,7 +468,7 @@ for item in files:
         if args.report:
           print("File %s will be moved from %s" % (newfile, original))
         else:
-          move_file(original, newfile, af, logger)
+          move_file(original, newfile, af, logger, fatal_error=args.fatal)
           checksum_cache[newfile] = checksum_cache[original]
           checksum_cache.pop(original)
       else:
@@ -477,7 +485,7 @@ for item in files:
           if args.report:
             print("Duplicate file %s will be deleted due to hash map match on another file %s" % (original, newfile))
           else:
-            delete_file(original, args.trash, af)
+            delete_file(original, args.trash, af, fatal_error=args.fatal)
             checksum_cache.pop(original)
         else:
           # Would like to make this modular for but now we will use -(NNNN) as the sequence
@@ -508,7 +516,7 @@ for item in files:
               if args.report:
                 print("Incremented file %s will be moved from %s" % (newfile, original))
               else:
-                move_file(original, newfile, af, logger)
+                move_file(original, newfile, af, logger, fatal_error=args.fatal)
                 checksum_cache[newfile] = checksum_cache[original]
                 checksum_cache.pop(original)
               rename_done = True
@@ -527,7 +535,7 @@ for item in files:
                   if args.report:
                     print("Duplicate file %s will be deleted due to hash map match on another file %s" % (original, newfile))
                   else:
-                    delete_file(original, args.trash, af)
+                    delete_file(original, args.trash, af, fatal_error=args.fatal)
                     checksum_cache.pop(original)
                   rename_done = True
             counter += 1 
