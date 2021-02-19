@@ -146,7 +146,7 @@ if not testing:
             logging.debug("Cannot find title in row %s", titletemp)           
           # Get the vendor
           if url:
-            log.info("Getting page %s for vendor..." % (url))
+            log.info("Getting title %s for vendor..." % (url))
             vendorsoup = None
             try:
               resp = session.get(url)                    # get the protected page

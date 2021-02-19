@@ -92,7 +92,14 @@ except Exception as e:
 # For each title in master
 for masterRow in master:
   # Filter title for studio
-  title = masterRow[masterField].split(' - ')[0]
+  title = None
+  studio = None
+  values = masterRow[masterField].split(' - ')
+  if len(values) > 1:
+    title = values[0]
+    studio = values[1]
+  else:
+    title = values[0]
   # Remove trailing parens
   title = remove_trailing_paren(title)
   # Set displayed flag to False
@@ -113,8 +120,14 @@ for masterRow in master:
     print(e)
 ## For each slavetitle in slave
   for slaveRow in slave:
+    slaveTitle = None
+    slaveStudio = None
+    # Eek, can't assume this. Need to look for Studio? column in CSV
     if ' - ' in slaveRow[slaveField]:
-      slaveTitle = slaveRow[slaveField].split(' - ')[0]
+      values = slaveRow[slaveField].split(' - ')
+      if len(values) > 1:
+        slaveTitle = values[0]
+        slaveStudio = values[1]
     else:
       slaveTitle = slaveRow[slaveField]
     # Remove trailing parens
@@ -134,7 +147,7 @@ for masterRow in master:
 ### If score is > X then print the source title and line number with all the matching slave titles and their line numbers
     if ratio >= passingScore:
       if not displayedOnce:
-        print("%s:%s" % (str(master.line_num), title))
+        print("Master Title \tline %s:\t%s (%s)" % (str(master.line_num), title, studio))
         displayedOnce=True
-      print("  %s %s:%s" % (ratio, str(slave.line_num), slaveTitle))
+      print(" Slv Ratio %s \tline %s:\t%s (%s)" % (ratio, str(slave.line_num), slaveTitle, slaveStudio))
   fromSlave.close()
