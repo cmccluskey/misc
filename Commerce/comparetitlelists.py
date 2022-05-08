@@ -1,4 +1,4 @@
-#!/opt/local/bin/python3
+#!/usr/local/opt/python@3.7/bin/python3
 
 #sudo pip-3.6 install fuzzywuzzy
 
@@ -32,6 +32,20 @@ def get_encoding(filename):
 
 def get_title_field(csvobj):
   columnNames= [ 'Title', 'Name' ]
+  extractedNames = []
+# For Reader
+#  for column in csvobj.next():
+#    extractedNames.append(column)
+# For DictReader
+  extractedNames = csvobj.fieldnames
+#  pprint.pprint(extractedNames)
+  for possibleName in columnNames:
+    if possibleName in extractedNames:
+      return possibleName
+  return None
+
+def get_studio_field(csvobj):
+  columnNames= [ 'Studio' ]
   extractedNames = []
 # For Reader
 #  for column in csvobj.next():
@@ -123,13 +137,14 @@ for masterRow in master:
     slaveTitle = None
     slaveStudio = None
     # Eek, can't assume this. Need to look for Studio? column in CSV
-    if ' - ' in slaveRow[slaveField]:
+    if get_studio_field(slave):
+      slaveTitle = slaveRow[slaveField]
+      slaveStudio = slaveRow[get_studio_field(slave)]
+    else:
       values = slaveRow[slaveField].split(' - ')
       if len(values) > 1:
         slaveTitle = values[0]
         slaveStudio = values[1]
-    else:
-      slaveTitle = slaveRow[slaveField]
     # Remove trailing parens
     slaveTitle = remove_trailing_paren(slaveTitle)
 ### Get score
