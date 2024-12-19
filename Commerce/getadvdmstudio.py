@@ -13,15 +13,22 @@ import time
 from bs4 import BeautifulSoup
 from decimal import Decimal
 
+# Potential "end string" filter to be applied to alias names
+alias_filters = [ 'Archive', 'Archives', 'Associates', 'Cinema', 'Co', 'Corp', 'Corporation', 'Digital', 'Dist', 'Distribution', 'Distributors', 'Dvds', 
+                  'Ent', 'Enterprise', 'Enterprises', 'Enterprises C', 'Entertainment', 'Films', 'Group', 'HD', 'Inc', 'Int', 'Intl', 'Interactive', 'International', 
+                  'L.p', 'Limited', 'Llc', 'Ltd', 'Media', 'Millenium', 'Multimedia', 
+                  'Pictures', 'POV', 'Porn', 'Prod', 'Production', 'Productions', 'Productions C', 'ProductionsXc', 'Products', 
+                  'Releasing', 'Sales', 'Studio', 'Studios', 'Usa', 'Video', 'Videos', 'XXX' ]
+
 # Parser setup
-parser = argparse.ArgumentParser(description='Pull wish list from a known website, and export the wishlist to a CSV file.')
+parser = argparse.ArgumentParser(description='Pull studio list from a known website, optionally generate studio aliases (short form), and export the list to a CSV file.')
 
 parser.add_argument('-d', dest='debug', action='store_true', default=False, help='Enable debugging to standard out.')
 parser.add_argument('-c', dest='csvfile', default='./advdmstudio.csv', help='Override the CSV file.') 
+parser.add_argument('-a', dest='aliases', action='store_true', help='Optionally generate filtered aliases for improved user-side matching.')
 parser.add_argument('-u', dest='user', default=False, required=True, help='Website user.')
 parser.add_argument('-p', dest='pswd', default=False, required=True, help='Website user\'s password.')
 parser.add_argument('-S', dest='site', default=False, required=True, help='Website URL without the leading protocol and double slash.')
-parser.add_argument('-r', dest='reset', default=False, required=False, help='Do not receive alerts for items below this threshold.')
 
 # True out arg parser
 args = parser.parse_args()
@@ -70,7 +77,7 @@ except Exception as e:
 
 # What page we on now?
 currentp = 1
-# What is the number of pages to read
+# What is the number of pages to read -- one for each starting letter
 maxp = 26 
 # Beautiful Soup buffers
 soup = None
@@ -79,7 +86,7 @@ soupdata = None
 if testing:
   listings = [] # Can be filled with a lists of data
 else:
-  listings = [['Origin', 'MapTo']]
+  listings = [['Studio', 'Origin', 'Alias']]
 
 studio_dup = {}
 
@@ -107,9 +114,53 @@ while currentp <= maxp:
       else:
       # Write Record
         logging.debug("Appending %s", studio_text)
-        listings.append([studio_text, studio_text])
+        listings.append([studio_text, studio_text, 'No'])
       # Add duplicate cache
         studio_dup[studio_text.upper()] = ""
+      if args.aliases:
+        prev_proposed_alias = studio_text
+        # Remove paren texts
+        proposed_alias = re.sub(r'\s*\([^)]*\)', '', prev_proposed_alias)
+        if proposed_alias != prev_proposed_alias:
+          log.debug("Adding paren-removed alias: %s" % proposed_alias)
+          listings.append([proposed_alias, studio_text, 'Yes'])
+          prev_proposed_alias = proposed_alias
+        # Start stripping 1/3 
+        for alias in alias_filters:
+          my_regex = r'[\s,\.,\,]+' + re.escape(alias) + r'[\s,\.,\,]*(?:\s+|$)'
+          proposed_alias = re.sub(my_regex, '', prev_proposed_alias, re.IGNORECASE)
+          if proposed_alias != prev_proposed_alias:
+            log.debug("Removing alias filter %s to: %s" % (alias, proposed_alias))
+            listings.append([proposed_alias, studio_text, 'Yes'])
+            prev_proposed_alias = proposed_alias
+        # Start stripping 2/3 
+        for alias in alias_filters:
+          my_regex = r'[\s,\.,\,]+' + re.escape(alias) + r'[\s,\.,\,]*(?:\s+|$)'
+          proposed_alias = re.sub(my_regex, '', prev_proposed_alias, re.IGNORECASE)
+          if proposed_alias != prev_proposed_alias:
+            log.debug("Removing alias filter %s to: %s" % (alias, proposed_alias))
+            listings.append([proposed_alias, studio_text, 'Yes'])
+            prev_proposed_alias = proposed_alias
+        # Start stripping 3/3 
+        for alias in alias_filters:
+          my_regex = r'[\s,\.,\,]+' + re.escape(alias) + r'[\s,\.,\,]*(?:\s+|$)'
+          proposed_alias = re.sub(my_regex, '', prev_proposed_alias, re.IGNORECASE)
+          if proposed_alias != prev_proposed_alias:
+            log.debug("Removing alias filter %s to: %s" % (alias, proposed_alias))
+            listings.append([proposed_alias, studio_text, 'Yes'])
+            prev_proposed_alias = proposed_alias
+        # Alias for "and" instead of &
+        proposed_alias = re.sub(r'\s*\&\s*', ' and ', prev_proposed_alias)
+        if proposed_alias != prev_proposed_alias:
+          log.debug("Adding ampersand-removed alias: %s" % proposed_alias)
+          listings.append([proposed_alias, studio_text, 'Yes'])
+          prev_proposed_alias = proposed_alias
+        # Strip any ! from studio
+        proposed_alias = re.sub(r'\!', '', prev_proposed_alias)
+        if proposed_alias != prev_proposed_alias:
+          log.debug("Adding bang-removed alias: %s" % proposed_alias)
+          listings.append([proposed_alias, studio_text, 'Yes'])
+          prev_proposed_alias = proposed_alias
 #      pprint.pprint(listings)
   currentp = currentp + 1
   time.sleep(3)
