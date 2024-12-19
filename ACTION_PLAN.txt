@@ -1,3 +1,7 @@
+* Shard large directories
+- Create subfolders and move files to subdirectories if directory is larger than N items
+- Have the ability to reverse
+- Check for copies on reverse?
 * Look for copy patterns + at end of filename extension, + at end of filename proper?, Copy of, Copy (n) of, CopyX at the end, copy at the end, and filter offending sets [`,@,&,;,%,!], leading dot
 * Make suffixs correct
 - Be sure don't touch filters are working (.001, .r001, .vsp, .z01)
@@ -8,5 +12,5 @@
 * Check for personal data using .txt in BigJump
 * Do Checksums
 * Run conform, and filter offending character sets, leading dot
-* Check multis and move to bad folder\
+* Check multi and move to bad folder
 * Do Checksums on thumbnails
