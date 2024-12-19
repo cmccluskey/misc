@@ -1,5 +1,5 @@
+#!/opt/local/bin/python3
 #!/usr/local/opt/python@3.7/bin/python3
-
 #sudo pip-3.6 install fuzzywuzzy
 
 import argparse
