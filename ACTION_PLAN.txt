@@ -2,15 +2,16 @@
 - Create subfolders and move files to subdirectories if directory is larger than N items
 - Have the ability to reverse
 - Check for copies on reverse?
+* Make sure suffixes are valiud for the data
 * Look for copy patterns + at end of filename extension, + at end of filename proper?, Copy of, Copy (n) of, CopyX at the end, copy at the end, and filter offending sets [`,@,&,;,%,!], leading dot
-* Make suffixs correct
+* Make suffixs correct?
 - Be sure don't touch filters are working (.001, .r001, .vsp, .z01)
 - Remove trailing +
 - Fix other suffixes
 * Remove clear junk files in RAID14/*.txt
 * Check images and move to bad folder
-* Check for personal data using .txt in BigJump
-* Do Checksums
-* Run conform, and filter offending character sets, leading dot
 * Check multi and move to bad folder
+* Check for personal data using .txt in BigJump
+* Do checksums and check via new dup
+* Run conform, and filter offending character sets, leading dot
 * Do Checksums on thumbnails
