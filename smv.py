@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/opt/local/bin/python3
 import argparse
 import errno
 import hashlib
@@ -212,6 +212,7 @@ for sourcefile in sourcelist:
               mkdir_p(os.path.dirname(destfile))
             except:
               print("Warning: Could not create directory %s." % os.path.dirname(destfile))
+              continue
         # Move file
         if args.verbose or args.debug: print("%s --> %s" % (sourcefile,destfile))
         if not args.test:
