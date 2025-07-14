@@ -306,7 +306,7 @@ re_containsmagick = re.compile('magick\+\+', re.IGNORECASE)
 re_containsmotif = re.compile('motif\+\+', re.IGNORECASE)
 re_containsbonnie = re.compile('bonnie\+\+', re.IGNORECASE)
 
-exclude_strings = ['crdownlaod']
+exclude_strings = ['crdownload']
 
 checksum_cache = {}
 current_count = 0
