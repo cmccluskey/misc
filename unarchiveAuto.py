@@ -94,12 +94,12 @@ def octal_dump(text):
 sourcelist = []
 unarchivers = { 'zip': { 'binary_base': 'unzip', 'binary': '/usr/bin/unzip',       'list_args': '-l', 'version': 'UnZip 6.00 of 20 April 2009, by Info-ZIP',
                          'object_filters': [ '\s{0,}\d{1,}\s{1,}[\d\-]{8,}\s{1,}[\d:]{3,}\s{2,}(.*)$' ] }, 
-                'rar': { 'binary_base': 'unrar', 'binary': '/opt/local/bin/unrar', 'list_args': 'l',  'extract_args': 'x', 'version': 'UNRAR 7.11 freeware',
+                'rar': { 'binary_base': 'unrar', 'binary': '/opt/homebrew/bin/unrar', 'list_args': 'l',  'extract_args': 'x', 'version': 'UNRAR 7.11 freeware',
                          'multipart_string': ['part\d\.rar'], 'multipart_base': ['part1\.rar'],
                          'object_filters': [ '\s{1,}[A-Z.]{7,7}\s{1,}\d{1,}\s{1,}[\d\-]{8,}\s{1,}[\d:]{3,}\s{1,}(.*)$',    # Newer RAR 
                                              '\s{1,}[rwx\-]{3,}\s{1,}\d{1,}\s{1,}[\d\-]{8,}\s{1,}[\d:]{3,}\s{1,}(.*)$'     # RAR 1.5 
                                            ] }, 
-                'cbr': { 'binary_base': 'unrar', 'binary': '/opt/local/bin/unrar', 'list_args': 'l',  'extract_args': 'x', 'version': 'UNRAR 7.11 freeware',
+                'cbr': { 'binary_base': 'unrar', 'binary': '/opt/homebrew/bin/unrar', 'list_args': 'l',  'extract_args': 'x', 'version': 'UNRAR 7.11 freeware',
                          'multipart_string': ['part\d\.cbr'], 'multipart_base': ['part1\.cbr'],
                          'object_filters': [ '\s{1,}[A-Z.]{7,7}\s{1,}\d{1,}\s{1,}[\d\-]{8,}\s{1,}[\d:]{3,}\s{1,}(.*)$',    # Newer RAR
                                              '\s{1,}[rwx\-]{3,}\s{1,}\d{1,}\s{1,}[\d\-]{8,}\s{1,}[\d:]{3,}\s{1,}(.*)$'     # RAR 1.5 

@@ -40,7 +40,7 @@ import re
 import shutil 
 import sys
 import time
-from fuzzywuzzy import fuzz
+#from fuzzywuzzy import fuzz
 from urllib.parse import unquote
 
 # Move to commmon

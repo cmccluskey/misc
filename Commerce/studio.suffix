@@ -1,0 +1,61 @@
+(required preceeded by one or more of ' ', ',', '.')
+(optional post by one or more of ' ', ',', '.')
+Archive
+Archives
+Associates
+Cinema
+Co.
+Corp
+Corporation
+Digital
+Dist
+Distribution
+Distributors
+Dvds
+Ent.
+Enterprise
+Enterprises
+Enterprises C
+Entertainment
+Films
+Group
+HD
+Inc
+Inc.
+Int
+Int.
+Intl
+Intl.
+Interactive
+International
+L.p.
+Limited
+Llc
+Llc.
+Ltd
+Media
+Millenium
+Multimedia
+Pictures
+POV
+Porn
+Prod
+Production
+Productions
+Productions C
+ProductionsXc
+Products
+Releasing
+Sales
+Studio
+Studios
+Usa
+Video
+Videos
+XXX
+
+Any suffix with infomation between ()
+
+& -> and
+
+Trim any post !
